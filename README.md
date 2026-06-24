@@ -102,22 +102,73 @@ pnpm turbo lint
 
 ## Docker
 
-Docker sera utilisé pour lancer les services techniques du projet.
+Docker Compose lance les services techniques utilisés en développement local.
 
-Services prévus :
+Services disponibles :
 
 - PostgreSQL : base de données métier ;
 - Redis : cache et backend BullMQ ;
 - MinIO : stockage des documents ;
 - plus tard, images séparées pour l'API, le frontend et les workers.
 
-La commande cible sera :
+Les versions d'images sont volontairement fixées dans `docker-compose.yml`. Ne pas utiliser `latest` pour les services d'infrastructure.
+
+Versions locales actuelles :
+
+- PostgreSQL : `postgres:17.10-bookworm`
+- Redis : `redis:7.4.9-bookworm`
+- MinIO : `minio/minio:RELEASE.2025-09-07T16-13-09Z`
+
+Dependabot surveille les mises à jour Docker Compose, GitHub Actions et npm/pnpm via `.github/dependabot.yml`.
+
+Créer un fichier `.env` local à partir de l'exemple si nécessaire :
 
 ```bash
-docker compose up --build
+cp .env.example .env
 ```
 
-Le fichier `docker-compose.yml` n'est pas encore créé à ce stade du projet.
+Le fichier `.env` ne doit pas être commit. Il est ignoré par Git.
+
+Lancer les services :
+
+```bash
+docker compose up -d
+```
+
+Vérifier leur état :
+
+```bash
+docker compose ps
+```
+
+Afficher les logs :
+
+```bash
+docker compose logs -f
+```
+
+Arrêter les services :
+
+```bash
+docker compose down
+```
+
+Supprimer aussi les volumes locaux :
+
+```bash
+docker compose down -v
+```
+
+Attention : `docker compose down -v` supprime les données PostgreSQL, Redis et MinIO locales.
+
+Accès locaux par défaut :
+
+- PostgreSQL : `localhost:5432`
+- Redis : `localhost:6379`
+- MinIO API : `http://localhost:9000`
+- MinIO Console : `http://localhost:9001`
+
+Les identifiants locaux sont définis dans `.env`.
 
 ## Structure actuelle
 
