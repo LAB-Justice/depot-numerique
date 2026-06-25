@@ -1,5 +1,8 @@
 packages:
   - "apps/*"
+  - "docs"
   - "packages/*"
 allowBuilds:
+  esbuild: true
+  lefthook: true
   unrs-resolver: true
