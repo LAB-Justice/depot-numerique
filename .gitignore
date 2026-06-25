@@ -1,32 +1,14 @@
-# Angular specific
-/dist/
-/out-tsc/
-/tmp/
-/coverage/
-/e2e/test-output/
-/.angular/
-.angular/
+# Dependencies
+node_modules/
 
-# Nestjs specific
-/dist
-/node_modules
-/build
-/tmp
-
-# Node modules and dependency files
-/node_modules/
+# Alternative package manager lockfiles
 /package-lock.json
 /yarn.lock
 
-# dotenv environment variable files
+# Environment files
 .env
-.env.development
-.env.test
-.env.production
-
-# Angular CLI and build artefacts
-/.angular-cli.json
-/.ng/
+.env.*
+!.env.example
 
 # TypeScript cache
 *.tsbuildinfo
@@ -43,8 +25,12 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# temp directory
+# Temporary files
 .temp
 .tmp
+
+# OS files
+.DS_Store
+Thumbs.db
 
 AGENTS.md
