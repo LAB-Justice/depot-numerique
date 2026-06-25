@@ -2,13 +2,24 @@
   "name": "depot-numerique",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "packageManager": "pnpm@11.8.0",
   "scripts": {
     "dev": "turbo dev",
+    "apps:dev": "turbo dev --filter api --filter web",
+    "api:dev": "pnpm --filter api dev",
+    "web:dev": "pnpm --filter web dev",
     "build": "turbo build",
-    "lint": "turbo lint",
-    "test": "turbo test"
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "knip": "knip",
+    "prepare": "lefthook install",
+    "test": "turbo test",
+    "docs:dev": "pnpm --filter @depot-numerique/docs dev",
+    "docs:build": "pnpm --filter @depot-numerique/docs build",
+    "docs:preview": "pnpm --filter @depot-numerique/docs preview"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +33,9 @@
   },
   "type": "module",
   "devDependencies": {
+    "@biomejs/biome": "2.5.1",
+    "knip": "6.18.0",
+    "lefthook": "2.1.9",
     "turbo": "^2.9.18"
   }
 }
