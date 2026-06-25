@@ -39,7 +39,7 @@ Le cycle cible est le suivant : un agent dépose un document depuis l'interface 
 - Automatisation web : `Playwright`
 - Documentation API : `Swagger / OpenAPI`
 - Conteneurisation : `Docker`, `Docker Compose`
-- Qualité de code : `Biome`, `Knip`, `Lefthook`
+- Qualité de code : `Biome`, `Knip`, `Lefthook`, `Commitlint`
 - CI/CD : `GitHub Actions`
 - Déploiement documentation : `GitHub Pages`
 - Secrets : `Vault`

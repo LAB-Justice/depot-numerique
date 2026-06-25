@@ -161,8 +161,17 @@ Le projet utilise une configuration centralisée à la racine du monorepo.
 - Biome : formatage et lint.
 - Knip : détection des dépendances inutilisées, exports inutilisés et fichiers morts.
 - Lefthook : hooks Git locaux.
+- Commitlint : validation des messages de commit au format Conventional Commits.
 
 Avant de commit, Lefthook lance Biome sur les fichiers staged et réajoute automatiquement les fichiers corrigés.
+
+Au commit, Lefthook lance aussi Commitlint sur le message de commit.
+
+Tester le dernier commit :
+
+```bash
+pnpm commitlint
+```
 
 Commandes principales :
 
@@ -304,7 +313,7 @@ packages/
 - Automatisation web : `Playwright`
 - Documentation API : `Swagger / OpenAPI`
 - Conteneurisation : `Docker`, `Docker Compose`
-- Qualité de code : `Biome`, `Knip`, `Lefthook`
+- Qualité de code : `Biome`, `Knip`, `Lefthook`, `Commitlint`
 - CI/CD : `GitHub Actions`
 - Secrets : `Vault`
 - Supervision : `Prometheus`, `Grafana`

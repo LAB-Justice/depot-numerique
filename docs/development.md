@@ -117,6 +117,7 @@ Le projet utilise :
 
 - Biome pour le formatage et le lint ;
 - Knip pour détecter les dépendances et fichiers inutilisés ;
+- Commitlint pour valider les messages de commit ;
 - Lefthook pour les hooks Git locaux.
 
 Commandes principales :
@@ -148,7 +149,7 @@ pnpm docs:preview
 La documentation est configurée pour GitHub Pages avec :
 
 ```ts
-base: "/depot-numerique/"
+base: "/depot-numerique/";
 ```
 
 Le workflow GitHub Actions `.github/workflows/deploy.yml` construit `docs/.vitepress/dist` et le publie sur GitHub Pages.

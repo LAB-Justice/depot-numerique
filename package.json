@@ -14,6 +14,7 @@
     "format:check": "biome format .",
     "check": "biome check .",
     "check:fix": "biome check --write .",
+    "commitlint": "commitlint --from HEAD~1 --to HEAD --verbose",
     "knip": "knip",
     "prepare": "lefthook install",
     "test": "turbo test",
@@ -34,6 +35,8 @@
   "type": "module",
   "devDependencies": {
     "@biomejs/biome": "2.5.1",
+    "@commitlint/cli": "21.1.0",
+    "@commitlint/config-conventional": "21.1.0",
     "knip": "6.18.0",
     "lefthook": "2.1.9",
     "turbo": "^2.9.18"
