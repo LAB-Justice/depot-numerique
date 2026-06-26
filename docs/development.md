@@ -154,6 +154,12 @@ Tâches principales :
 
 Les tâches monorepo passent par Turbo. Cela permet d'exécuter les workspaces en parallèle, d'utiliser le cache lorsque c'est possible et de cibler un workspace sans écrire `--filter` à la main.
 
+Les hooks Git sont gérés par Lefthook :
+
+- `pre-commit` lance Biome sur les fichiers staged et réajoute les fichiers corrigés.
+- `commit-msg` valide le message de commit avec Commitlint.
+- `pre-push` lance en parallèle `pnpm check`, `pnpm knip`, `pnpm typecheck` et `pnpm test`.
+
 Commandes principales :
 
 ```bash

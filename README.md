@@ -255,7 +255,7 @@ Avant de commit, Lefthook lance Biome sur les fichiers staged et réajoute autom
 
 Au commit, Lefthook lance aussi Commitlint sur le message de commit.
 
-Avant un push, Lefthook lance `pnpm check`, `pnpm knip`, `pnpm typecheck` et `pnpm test`.
+Avant un push, Lefthook lance en parallèle `pnpm check`, `pnpm knip`, `pnpm typecheck` et `pnpm test`.
 
 Tester le dernier commit :
 
