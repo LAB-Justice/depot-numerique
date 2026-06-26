@@ -46,6 +46,14 @@ pnpm prepare
 
 ## Lancement local
 
+Les commandes de développement suivent la même convention que les autres tâches du monorepo :
+
+- `pnpm dev` lance tous les serveurs de développement disponibles.
+- `pnpm apps:dev` lance uniquement les applications métier, donc `api` et `web`.
+- `pnpm <workspace>:dev` lance un seul workspace.
+
+Les serveurs `dev` sont déclarés comme persistants dans Turbo : ils restent actifs tant que le terminal est ouvert et ne sont pas mis en cache.
+
 Lancer l'API, le frontend et la documentation :
 
 ```bash
@@ -120,9 +128,38 @@ Le projet utilise :
 - Commitlint pour valider les messages de commit ;
 - Lefthook pour les hooks Git locaux.
 
+Les commandes suivent une nomenclature commune :
+
+```text
+pnpm <tâche>              # tous les workspaces concernés
+pnpm <workspace>:<tâche>  # un workspace précis
+```
+
+Workspaces disponibles :
+
+- `api` : API NestJS.
+- `web` : frontend Angular.
+- `docs` : documentation VitePress.
+
+Tâches principales :
+
+- `build` : compile le workspace.
+- `test` : lance les tests.
+- `typecheck` : vérifie les types TypeScript sans produire de build.
+- `lint` : lance le lint Biome.
+- `format` : formate le code avec Biome.
+- `format:check` : vérifie le formatage sans modifier les fichiers.
+- `check` : lance les vérifications Biome complètes.
+- `check:fix` : applique les corrections Biome automatiques.
+
+Les tâches monorepo passent par Turbo. Cela permet d'exécuter les workspaces en parallèle, d'utiliser le cache lorsque c'est possible et de cibler un workspace sans écrire `--filter` à la main.
+
 Commandes principales :
 
 ```bash
+pnpm build
+pnpm test
+pnpm typecheck
 pnpm lint
 pnpm format
 pnpm format:check
@@ -131,6 +168,49 @@ pnpm check:fix
 pnpm knip
 pnpm prepare
 ```
+
+Commandes ciblées API :
+
+```bash
+pnpm api:dev
+pnpm api:build
+pnpm api:test
+pnpm api:typecheck
+pnpm api:lint
+pnpm api:format
+pnpm api:format:check
+pnpm api:check
+pnpm api:check:fix
+```
+
+Commandes ciblées frontend :
+
+```bash
+pnpm web:dev
+pnpm web:build
+pnpm web:test
+pnpm web:typecheck
+pnpm web:lint
+pnpm web:format
+pnpm web:format:check
+pnpm web:check
+pnpm web:check:fix
+```
+
+Commandes ciblées documentation :
+
+```bash
+pnpm docs:dev
+pnpm docs:build
+pnpm docs:preview
+pnpm docs:lint
+pnpm docs:format
+pnpm docs:format:check
+pnpm docs:check
+pnpm docs:check:fix
+```
+
+La documentation n'a pas encore de commande `docs:test` ni `docs:typecheck`. Le build VitePress avec `pnpm docs:build` sert de vérification principale.
 
 ## Documentation
 
@@ -172,4 +252,10 @@ Lancer tous les tests :
 
 ```bash
 pnpm test
+```
+
+Vérifier les types TypeScript :
+
+```bash
+pnpm typecheck
 ```

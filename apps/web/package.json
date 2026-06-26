@@ -6,6 +6,12 @@
     "start": "ng serve",
     "dev": "ng serve",
     "build": "ng build",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "typecheck": "ngc -p tsconfig.app.json --noEmit",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

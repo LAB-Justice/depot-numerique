@@ -100,6 +100,22 @@ pnpm docs:dev
 
 ## Commandes utiles
 
+Les commandes suivent une nomenclature simple :
+
+- `pnpm <tâche>` lance la tâche sur tous les workspaces concernés via Turbo.
+- `pnpm <workspace>:<tâche>` lance la même tâche sur un workspace précis.
+- Les workspaces disponibles sont `api`, `web` et `docs`.
+- Les commandes `dev` sont des serveurs persistants et ne sont pas mises en cache par Turbo.
+
+Exemples :
+
+```bash
+pnpm build
+pnpm api:build
+pnpm web:build
+pnpm docs:build
+```
+
 Lister les packages du workspace :
 
 ```bash
@@ -112,16 +128,41 @@ Compiler tous les packages qui exposent une tâche `build` :
 pnpm build
 ```
 
+Compiler un workspace précis :
+
+```bash
+pnpm api:build
+pnpm web:build
+pnpm docs:build
+```
+
 Lancer les tests :
 
 ```bash
 pnpm test
 ```
 
+Lancer les tests d'un workspace précis :
+
+```bash
+pnpm api:test
+pnpm web:test
+```
+
+Il n'y a pas encore de commande `docs:test`, car la documentation n'expose pas de script de test.
+
 Lancer le lint Biome :
 
 ```bash
 pnpm lint
+```
+
+Lancer le lint sur un workspace précis :
+
+```bash
+pnpm api:lint
+pnpm web:lint
+pnpm docs:lint
 ```
 
 Formater le code avec Biome :
@@ -130,10 +171,26 @@ Formater le code avec Biome :
 pnpm format
 ```
 
+Formater un workspace précis :
+
+```bash
+pnpm api:format
+pnpm web:format
+pnpm docs:format
+```
+
 Vérifier le formatage sans modifier les fichiers :
 
 ```bash
 pnpm format:check
+```
+
+Vérifier le formatage d'un workspace précis :
+
+```bash
+pnpm api:format:check
+pnpm web:format:check
+pnpm docs:format:check
 ```
 
 Vérifier le formatage, le lint et les règles Biome :
@@ -142,10 +199,41 @@ Vérifier le formatage, le lint et les règles Biome :
 pnpm check
 ```
 
+Vérifier un workspace précis :
+
+```bash
+pnpm api:check
+pnpm web:check
+pnpm docs:check
+```
+
+Vérifier les types TypeScript :
+
+```bash
+pnpm typecheck
+```
+
+Vérifier les types d'un workspace précis :
+
+```bash
+pnpm api:typecheck
+pnpm web:typecheck
+```
+
+Il n'y a pas de commande `docs:typecheck`, car VitePress est vérifié via `pnpm docs:build`.
+
 Corriger automatiquement ce qui peut l'être :
 
 ```bash
 pnpm check:fix
+```
+
+Corriger automatiquement un workspace précis :
+
+```bash
+pnpm api:check:fix
+pnpm web:check:fix
+pnpm docs:check:fix
 ```
 
 Détecter les dépendances inutilisées et le code mort :
@@ -167,6 +255,8 @@ Avant de commit, Lefthook lance Biome sur les fichiers staged et réajoute autom
 
 Au commit, Lefthook lance aussi Commitlint sur le message de commit.
 
+Avant un push, Lefthook lance `pnpm check`, `pnpm knip`, `pnpm typecheck` et `pnpm test`.
+
 Tester le dernier commit :
 
 ```bash
@@ -181,6 +271,7 @@ pnpm format:check
 pnpm lint
 pnpm check
 pnpm check:fix
+pnpm typecheck
 pnpm knip
 pnpm prepare
 ```
