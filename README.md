@@ -242,6 +242,14 @@ Détecter les dépendances inutilisées et le code mort :
 pnpm knip
 ```
 
+Lancer tous les contrôles qualité avant une PR ou un push important :
+
+```bash
+pnpm verify
+```
+
+Cette commande enchaîne `pnpm check`, `pnpm knip`, `pnpm typecheck` et `pnpm test`.
+
 ## Qualité de code
 
 Le projet utilise une configuration centralisée à la racine du monorepo.
@@ -271,6 +279,7 @@ pnpm format:check
 pnpm lint
 pnpm check
 pnpm check:fix
+pnpm verify
 pnpm typecheck
 pnpm knip
 pnpm prepare

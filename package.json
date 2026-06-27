@@ -32,6 +32,7 @@
     "api:check:fix": "turbo check:fix --filter api",
     "web:check:fix": "turbo check:fix --filter web",
     "docs:check:fix": "turbo check:fix --filter @depot-numerique/docs",
+    "verify": "pnpm check && pnpm knip && pnpm typecheck && pnpm test",
     "typecheck": "turbo typecheck",
     "api:typecheck": "turbo typecheck --filter api",
     "web:typecheck": "turbo typecheck --filter web",

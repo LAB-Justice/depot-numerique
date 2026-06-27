@@ -151,6 +151,7 @@ Tâches principales :
 - `format:check` : vérifie le formatage sans modifier les fichiers.
 - `check` : lance les vérifications Biome complètes.
 - `check:fix` : applique les corrections Biome automatiques.
+- `verify` : enchaîne les contrôles qualité principaux avant une PR ou un push important.
 
 Les tâches monorepo passent par Turbo. Cela permet d'exécuter les workspaces en parallèle, d'utiliser le cache lorsque c'est possible et de cibler un workspace sans écrire `--filter` à la main.
 
@@ -171,8 +172,18 @@ pnpm format
 pnpm format:check
 pnpm check
 pnpm check:fix
+pnpm verify
 pnpm knip
 pnpm prepare
+```
+
+La commande `pnpm verify` exécute dans l'ordre :
+
+```bash
+pnpm check
+pnpm knip
+pnpm typecheck
+pnpm test
 ```
 
 Commandes ciblées API :

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["package.json", "turbo.json", "lefthook.yml", "biome.json"]
+    },
+    "apps/api": {
+      "entry": ["src/main.ts", "src/**/*.module.ts", "src/**/*.spec.ts", "test/**/*.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "apps/web": {
+      "entry": ["src/app/app.config.ts", "src/app/app.routes.ts", "src/**/*.spec.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "docs": {
+      "project": [".vitepress/**/*.ts"]
+    }
+  },
+  "ignoreDependencies": ["vue"]
+}
