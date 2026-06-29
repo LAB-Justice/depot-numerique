@@ -1,0 +1,254 @@
+name: DAST Security Scan
+
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      frontend_url:
+        description: "URL frontend à scanner. Laisser la valeur par défaut pour scanner le frontend lancé en CI."
+        required: false
+        default: "http://127.0.0.1:4200"
+      api_url:
+        description: "URL API à scanner. Laisser la valeur par défaut pour scanner l'API lancée en CI."
+        required: false
+        default: "http://127.0.0.1:3000"
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: dast-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DAST_FRONTEND_URL: ${{ github.event.inputs.frontend_url || 'http://127.0.0.1:4200' }}
+  DAST_API_URL: ${{ github.event.inputs.api_url || 'http://127.0.0.1:3000' }}
+  # Digest immuable de ghcr.io/zaproxy/zaproxy:stable (multi-arch).
+  ZAP_IMAGE: ghcr.io/zaproxy/zaproxy:stable@sha256:7c2f8afc893e4e4000be8ad3fd22013fc36e5cce59359349f5a2d45626e2ccb9
+
+jobs:
+  dast:
+    name: Analyse dynamique de sécurité
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4.2.2
+
+      - name: Enable Corepack
+        if: env.DAST_FRONTEND_URL == 'http://127.0.0.1:4200' || env.DAST_API_URL == 'http://127.0.0.1:3000'
+        run: corepack enable
+
+      - name: Setup Node.js
+        if: env.DAST_FRONTEND_URL == 'http://127.0.0.1:4200' || env.DAST_API_URL == 'http://127.0.0.1:3000'
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        if: env.DAST_FRONTEND_URL == 'http://127.0.0.1:4200' || env.DAST_API_URL == 'http://127.0.0.1:3000'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        if: env.DAST_FRONTEND_URL == 'http://127.0.0.1:4200'
+        run: |
+          pnpm --filter web build
+
+      - name: Start frontend
+        if: env.DAST_FRONTEND_URL == 'http://127.0.0.1:4200'
+        run: |
+          WEB_DIST_DIR="apps/web/dist/web/browser"
+          if [ ! -f "${WEB_DIST_DIR}/index.html" ]; then
+            echo "Unable to find frontend build output in ${WEB_DIST_DIR}."
+            exit 1
+          fi
+          # Serveur statique Node inline avec fallback SPA : les routes inconnues
+          # renvoient index.html afin d'éviter les faux positifs 404 en cascade
+          # lors du scan ZAP/Nuclei d'une SPA Angular.
+          cat > serve-spa.mjs <<'NODE'
+          import { createServer } from "node:http";
+          import { readFile } from "node:fs/promises";
+          import { extname, join, normalize } from "node:path";
+          const root = process.argv[2];
+          const port = Number(process.argv[3] || 4200);
+          const MIME = {
+            ".html": "text/html; charset=utf-8",
+            ".js": "text/javascript",
+            ".mjs": "text/javascript",
+            ".css": "text/css",
+            ".json": "application/json; charset=utf-8",
+            ".svg": "image/svg+xml",
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".gif": "image/gif",
+            ".webp": "image/webp",
+            ".ico": "image/x-icon",
+            ".woff": "font/woff",
+            ".woff2": "font/woff2",
+            ".map": "application/json",
+          };
+          const server = createServer(async (req, res) => {
+            try {
+              const url = new URL(req.url, `http://localhost:${port}`);
+              let path = decodeURIComponent(url.pathname);
+              if (path.endsWith("/")) path += "index.html";
+              const file = join(root, normalize(path).replace(/^(\.\.[/\\])+/, ""));
+              let data;
+              try {
+                data = await readFile(file);
+              } catch {
+                // Fallback SPA : toute ressource introuvoie renvoie index.html.
+                data = await readFile(join(root, "index.html"));
+                res.setHeader("Content-Type", MIME[".html"]);
+                res.end(data);
+                return;
+              }
+              res.setHeader("Content-Type", MIME[extname(file)] || "application/octet-stream");
+              res.end(data);
+            } catch (err) {
+              res.statusCode = 500;
+              res.end(String(err));
+            }
+          });
+          server.listen(port, "0.0.0.0", () => {
+            console.log(`SPA server listening on :${port}, root=${root}`);
+          });
+          NODE
+          node serve-spa.mjs "${WEB_DIST_DIR}" 4200 > web-dast.log 2>&1 &
+
+      - name: Build API
+        if: env.DAST_API_URL == 'http://127.0.0.1:3000'
+        run: |
+          pnpm --filter api build
+
+      - name: Start API
+        if: env.DAST_API_URL == 'http://127.0.0.1:3000'
+        # L'API est lancée en mode production (build compilé) plutôt qu'en
+        # mode dev/watch : le hot reload générait des réponses instables et
+        # des faux positifs DAST pendant les rechargements.
+        run: |
+          PORT=3000 node apps/api/dist/main.js > api-dast.log 2>&1 &
+
+      - name: Wait for frontend
+        run: |
+          for attempt in {1..60}; do
+            if curl --fail --silent --show-error "${DAST_FRONTEND_URL}" > /dev/null; then
+              echo "Frontend is reachable: ${DAST_FRONTEND_URL}"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Frontend is not reachable after 120 seconds: ${DAST_FRONTEND_URL}"
+          if [ -f web-dast.log ]; then
+            cat web-dast.log
+          fi
+          exit 1
+
+      - name: Wait for API
+        run: |
+          for attempt in {1..60}; do
+            if curl --fail --silent --show-error "${DAST_API_URL}" > /dev/null; then
+              echo "API is reachable: ${DAST_API_URL}"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "API is not reachable after 120 seconds: ${DAST_API_URL}"
+          if [ -f api-dast.log ]; then
+            cat api-dast.log
+          fi
+          exit 1
+
+      # ZAP tourne dans un conteneur Docker lancé en --network host afin de
+      # pouvoir joindre le frontend et l'API écoutés sur 127.0.0.1 par le runner.
+      # zap-baseline.py ne bloque jamais la CI (|| true) : équivalent de
+      # fail_action: false. Les rapports HTML et JSON sont conservés en artifact.
+      - name: ZAP baseline scan frontend
+        run: |
+          mkdir -p .zap/out
+          docker run --rm \
+            --network host \
+            -v "$PWD/.zap:/zap/wrk/:rw" \
+            "${ZAP_IMAGE}" \
+            zap-baseline.py -t "${DAST_FRONTEND_URL}" \
+              -c /zap/wrk/rules.tsv \
+              -r /zap/wrk/out/zap-dast-frontend-report.html \
+              -J /zap/wrk/out/zap-dast-frontend-report.json \
+              -a -m 5 -T 60 || true
+
+      - name: ZAP baseline scan API
+        run: |
+          docker run --rm \
+            --network host \
+            -v "$PWD/.zap:/zap/wrk/:rw" \
+            "${ZAP_IMAGE}" \
+            zap-baseline.py -t "${DAST_API_URL}" \
+              -c /zap/wrk/rules.tsv \
+              -r /zap/wrk/out/zap-dast-api-report.html \
+              -J /zap/wrk/out/zap-dast-api-report.json \
+              -a -m 5 -T 60 || true
+
+      - name: Nuclei scan frontend
+        id: nuclei_frontend
+        uses: projectdiscovery/nuclei-action@cc153d0541e1adf8a42bbe31c0a4fb2376147538 # v3
+        continue-on-error: true
+        with:
+          target: ${{ env.DAST_FRONTEND_URL }}
+          nuclei-version: v3.6.0
+          sarif-export: nuclei-dast-frontend-results.sarif
+          jsonl-export: nuclei-dast-frontend-results.jsonl
+          flags: "-severity high,critical -exit-code"
+
+      - name: Nuclei scan API
+        id: nuclei_api
+        uses: projectdiscovery/nuclei-action@cc153d0541e1adf8a42bbe31c0a4fb2376147538 # v3
+        continue-on-error: true
+        with:
+          target: ${{ env.DAST_API_URL }}
+          nuclei-version: v3.6.0
+          sarif-export: nuclei-dast-api-results.sarif
+          jsonl-export: nuclei-dast-api-results.jsonl
+          flags: "-severity high,critical -exit-code"
+
+      - name: Upload Nuclei frontend SARIF vers GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        if: ${{ always() && hashFiles('nuclei-dast-frontend-results.sarif') != '' }}
+        with:
+          sarif_file: nuclei-dast-frontend-results.sarif
+          category: nuclei-dast-frontend
+
+      - name: Upload Nuclei API SARIF vers GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        if: ${{ always() && hashFiles('nuclei-dast-api-results.sarif') != '' }}
+        with:
+          sarif_file: nuclei-dast-api-results.sarif
+          category: nuclei-dast-api
+
+      - name: Upload DAST artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: dast-results
+          path: |
+            web-dast.log
+            api-dast.log
+            .zap/out/
+            nuclei-dast-frontend-results.sarif
+            nuclei-dast-frontend-results.jsonl
+            nuclei-dast-api-results.sarif
+            nuclei-dast-api-results.jsonl
+          if-no-files-found: ignore
+
+      - name: Bloquer sur findings Nuclei high ou critical
+        if: ${{ steps.nuclei_frontend.outcome == 'failure' || steps.nuclei_api.outcome == 'failure' }}
+        run: |
+          echo "Nuclei a détecté au moins un finding high ou critical sur le frontend ou l'API."
+          exit 1
