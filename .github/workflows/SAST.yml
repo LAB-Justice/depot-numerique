@@ -41,6 +41,7 @@ jobs:
         if: ${{ always() && hashFiles('semgrep-results.sarif') != '' }}
         with:
           sarif_file: semgrep-results.sarif
+          category: semgrep-sast
 
       # Seuil bloquant : échoue si un finding est de sévérité ERROR, ou s'il
       # provient du pack p/secrets (ruleId contenant "secret"), quel que soit
