@@ -48,3 +48,4 @@ Le cycle cible est le suivant : un agent dépose un document depuis l'interface 
 ## Documentation disponible
 
 - [Développement local](/development)
+- [API](/api)
