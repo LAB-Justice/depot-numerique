@@ -1,6 +1,6 @@
 # Sécurité
 
-Cette page décrit l'analyse statique de sécurité configurée pour le projet.
+Cette page décrit l'analyse de sécurité configurée pour le projet : SAST (code source), SCA (dépendances) et DAST (application en cours d'exécution).
 
 ## SAST
 
@@ -50,6 +50,40 @@ Le workflow SAST suit cette séquence :
 3. upload SARIF vers GitHub Code Scanning ;
 4. contrôle bloquant sur les findings `ERROR` et les secrets ;
 5. upload du rapport SARIF en artifact.
+
+## SCA
+
+Le projet utilise `Trivy` comme outil SCA (Software Composition Analysis) pour détecter les vulnérabilités connues (CVE) dans les dépendances. Le scan est exécuté par GitHub Actions dans le workflow `.github/workflows/SCA.yml` sur chaque pull request et sur les pushs vers `main`.
+
+Trivy scanne le système de fichiers du dépôt (`scan-type: fs`), ce qui couvre le `pnpm-lock.yaml` à la racine ainsi que tous les lockfiles des workspaces (`apps/api`, `apps/web`, `docs`).
+
+## Alertes SCA visibles
+
+Le workflow génère un rapport SARIF `trivy-results.sarif` et l'upload avec `github/codeql-action/upload-sarif` (catégorie `trivy-sca`).
+
+Les résultats sont donc visibles dans l'onglet Security de GitHub, section Code scanning, en plus de l'artifact CI `sca-results`.
+
+## Seuil bloquant SCA
+
+Trivy est configuré avec :
+
+- `severity: HIGH,CRITICAL` : seules les vulnérabilités de sévérité haute et critique sont retenues ;
+- `exit-code: '1'` : le job échoue si au moins une vulnérabilité `HIGH` ou `CRITICAL` est détectée ;
+- `ignore-unfixed: false` : les vulnérabilités sans correctif connu sont incluses, afin de ne pas masquer une criticité présente.
+
+Conséquences :
+
+- les vulnérabilités `LOW` et `MEDIUM` ne bloquent pas la PR ;
+- les vulnérabilités `HIGH` et `CRITICAL` bloquent la PR ;
+- le rapport SARIF reste uploadé dans GitHub Code Scanning et disponible en artifact pour diagnostic, même en cas d'échec.
+
+> Note : les sévérités `LOW` / `MEDIUM` / `HIGH` / `CRITICAL` correspondent à l'échelle CVSS utilisée par Trivy.
+
+## Évolution future : images Docker
+
+Aujourd'hui le monorepo ne construit pas d'image Docker (seul un `docker-compose.yml` de services de développement existe). Le scan `fs` couvre donc l'intégralité des dépendances applicatives.
+
+Quand des images Docker seront ajoutées pour l'API, le frontend ou les workers, un second job Trivy `scan-type: image` sera ajouté au workflow pour scanner ces images contre la même base de vulnérabilités.
 
 ## DAST
 
