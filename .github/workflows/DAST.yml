@@ -204,6 +204,8 @@ jobs:
           args: >-
             -u ${{ env.DAST_FRONTEND_URL }}
             -severity high,critical
+            -tags misconfig,exposure,panel,fuzz,detect
+            -timeout 10 -rate-limit 150
             -jsonl -output nuclei-dast-frontend-results.jsonl
             -sarif-export nuclei-dast-frontend-results.sarif
 
@@ -215,6 +217,8 @@ jobs:
           args: >-
             -u ${{ env.DAST_API_URL }}
             -severity high,critical
+            -tags misconfig,exposure,panel,fuzz,detect
+            -timeout 10 -rate-limit 150
             -jsonl -output nuclei-dast-api-results.jsonl
             -sarif-export nuclei-dast-api-results.sarif
 
