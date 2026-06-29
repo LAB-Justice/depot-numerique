@@ -20,7 +20,7 @@ Swagger n'est activé qu'en développement. Il est désactivé en production (`N
 
 ## Configuration
 
-Le comportement de Swagger dépend de la variable d'environnement `NODE_ENV`, définie à la racine du monorepo dans `.env`.
+Le comportement de Swagger dépend de la variable d'environnement `NODE_ENV`, définie dans `apps/api/.env`.
 
 - `NODE_ENV=development` : Swagger accessible sur `/api/docs`.
 - `NODE_ENV=production` : Swagger désactivé.
