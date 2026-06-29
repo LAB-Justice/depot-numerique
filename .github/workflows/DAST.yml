@@ -201,22 +201,26 @@ jobs:
         uses: projectdiscovery/nuclei-action@cc153d0541e1adf8a42bbe31c0a4fb2376147538 # v3
         continue-on-error: true
         with:
-          target: ${{ env.DAST_FRONTEND_URL }}
-          nuclei-version: v3.6.0
-          sarif-export: nuclei-dast-frontend-results.sarif
-          jsonl-export: nuclei-dast-frontend-results.jsonl
-          flags: "-severity high,critical -exit-code"
+          version: v3.6.0
+          args: >-
+            -u ${{ env.DAST_FRONTEND_URL }}
+            -severity high,critical
+            -exit-code
+            -jsonl -output nuclei-dast-frontend-results.jsonl
+            -sarif-export nuclei-dast-frontend-results.sarif
 
       - name: Nuclei scan API
         id: nuclei_api
         uses: projectdiscovery/nuclei-action@cc153d0541e1adf8a42bbe31c0a4fb2376147538 # v3
         continue-on-error: true
         with:
-          target: ${{ env.DAST_API_URL }}
-          nuclei-version: v3.6.0
-          sarif-export: nuclei-dast-api-results.sarif
-          jsonl-export: nuclei-dast-api-results.jsonl
-          flags: "-severity high,critical -exit-code"
+          version: v3.6.0
+          args: >-
+            -u ${{ env.DAST_API_URL }}
+            -severity high,critical
+            -exit-code
+            -jsonl -output nuclei-dast-api-results.jsonl
+            -sarif-export nuclei-dast-api-results.sarif
 
       - name: Upload Nuclei frontend SARIF vers GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
