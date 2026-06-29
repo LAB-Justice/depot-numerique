@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MailType {
+  LR
+  LS
+
+  @@map("mail_type")
+}
+
+enum DocumentStatus {
+  RECEIVED
+  STORED
+  STORAGE_FAILED
+  ANALYZING
+  ANALYSIS_FAILED
+  NON_COMPLIANT
+  EXTRACTING
+  LLM_PENDING
+  LLM_FAILED
+  GENERATING_AFNOR
+  CORRECTED
+  COMPLIANT
+  QUEUED
+  SUBMITTING
+  SUBMITTED
+  SUBMISSION_FAILED
+  REJECTED
+  PURGED
+
+  @@map("document_status")
+}
+
+enum DocumentFileKind {
+  ORIGINAL
+  EXTRACTED
+  GENERATED
+  CORRECTED
+  SUBMITTED
+  REJECTED
+
+  @@map("document_file_kind")
+}
+
+model Jurisdiction {
+  id          String    @id @default(uuid()) @db.Uuid
+  ssoCode     String    @unique @map("sso_code") @db.VarChar(100)
+  slug        String    @unique @db.VarChar(100)
+  displayName String    @map("display_name") @db.VarChar(255)
+  isActive    Boolean   @default(true) @map("is_active")
+  services    Service[]
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("jurisdictions")
+}
+
+model Service {
+  id             String       @id @default(uuid()) @db.Uuid
+  jurisdictionId String       @map("jurisdiction_id") @db.Uuid
+  ssoCode        String       @map("sso_code") @db.VarChar(100)
+  slug           String       @db.VarChar(100)
+  displayName    String       @map("display_name") @db.VarChar(255)
+  isActive       Boolean      @default(true) @map("is_active")
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id], onDelete: Restrict)
+  documents      Document[]
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@unique([jurisdictionId, ssoCode])
+  @@unique([jurisdictionId, slug])
+  @@map("services")
+}
+
+model Document {
+  id           String         @id @default(uuid()) @db.Uuid
+  serviceId    String         @map("service_id") @db.Uuid
+  mailType     MailType       @map("mail_type")
+  status       DocumentStatus @default(RECEIVED)
+  depositorRef String         @map("depositor_ref") @db.VarChar(128)
+  service      Service        @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  files        DocumentFile[]
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  @@index([serviceId, createdAt])
+  @@index([status, createdAt])
+  @@index([depositorRef, createdAt])
+  @@map("documents")
+}
+
+model DocumentFile {
+  id             String           @id @default(uuid()) @db.Uuid
+  documentId     String           @map("document_id") @db.Uuid
+  kind           DocumentFileKind
+  bucket         String           @db.VarChar(63)
+  objectKey      String           @map("object_key") @db.VarChar(1024)
+  filename       String           @db.VarChar(255)
+  mimeType       String           @map("mime_type") @db.VarChar(127)
+  sizeBytes      BigInt           @map("size_bytes")
+  checksumSha256 String           @map("checksum_sha256") @db.Char(64)
+  document       Document         @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  @@unique([bucket, objectKey])
+  @@index([documentId, kind])
+  @@map("document_files")
+}
