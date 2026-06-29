@@ -197,7 +197,6 @@ jobs:
               -a -m 5 -T 60 || true
 
       - name: Nuclei scan frontend
-        id: nuclei_frontend
         uses: projectdiscovery/nuclei-action@cc153d0541e1adf8a42bbe31c0a4fb2376147538 # v3
         continue-on-error: true
         with:
@@ -205,12 +204,10 @@ jobs:
           args: >-
             -u ${{ env.DAST_FRONTEND_URL }}
             -severity high,critical
-            -exit-code
             -jsonl -output nuclei-dast-frontend-results.jsonl
             -sarif-export nuclei-dast-frontend-results.sarif
 
       - name: Nuclei scan API
-        id: nuclei_api
         uses: projectdiscovery/nuclei-action@cc153d0541e1adf8a42bbe31c0a4fb2376147538 # v3
         continue-on-error: true
         with:
@@ -218,7 +215,6 @@ jobs:
           args: >-
             -u ${{ env.DAST_API_URL }}
             -severity high,critical
-            -exit-code
             -jsonl -output nuclei-dast-api-results.jsonl
             -sarif-export nuclei-dast-api-results.sarif
 
@@ -252,7 +248,17 @@ jobs:
           if-no-files-found: ignore
 
       - name: Bloquer sur findings Nuclei high ou critical
-        if: ${{ steps.nuclei_frontend.outcome == 'failure' || steps.nuclei_api.outcome == 'failure' }}
         run: |
-          echo "Nuclei a détecté au moins un finding high ou critical sur le frontend ou l'API."
-          exit 1
+          set +e
+          frontend_count=$(wc -l < nuclei-dast-frontend-results.jsonl 2>/dev/null || echo 0)
+          api_count=$(wc -l < nuclei-dast-api-results.jsonl 2>/dev/null || echo 0)
+          frontend_count=${frontend_count// /}
+          api_count=${api_count// /}
+          echo "Findings Nuclei -> frontend: ${frontend_count}, api: ${api_count}"
+          if [ "${frontend_count}" != "0" ] || [ "${api_count}" != "0" ]; then
+            echo "Nuclei a détecté au moins un finding high ou critical sur le frontend ou l'API."
+            [ "${frontend_count}" != "0" ] && echo "--- Frontend findings ---" && cat nuclei-dast-frontend-results.jsonl
+            [ "${api_count}" != "0" ] && echo "--- API findings ---" && cat nuclei-dast-api-results.jsonl
+            exit 1
+          fi
+          echo "Aucun finding Nuclei high ou critical."
