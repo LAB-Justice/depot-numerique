@@ -8,12 +8,16 @@ export default defineConfig({
     nav: [
       { text: 'Accueil', link: '/' },
       { text: 'Développement', link: '/development' },
+      { text: 'API', link: '/api' },
     ],
 
     sidebar: [
       {
         text: 'Projet',
-        items: [{ text: 'Développement', link: '/development' }],
+        items: [
+          { text: 'Développement', link: '/development' },
+          { text: 'API', link: '/api' },
+        ],
       },
     ],
 
