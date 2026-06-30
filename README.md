@@ -6,6 +6,7 @@ Le projet est initialisé en monorepo avec `pnpm` et `Turbo`. Il contient actuel
 
 - `apps/api` : API NestJS ;
 - `apps/web` : frontend Angular ;
+- `packages/database` : schéma, migrations, seed et client Prisma partagés ;
 - `docs` : documentation VitePress ;
 - `turbo.json` : configuration des tâches monorepo ;
 - `pnpm-workspace.yaml` : déclaration des workspaces pnpm.
@@ -56,6 +57,16 @@ pnpm exec lefthook install
 
 La commande `pnpm install` exécute aussi le script `prepare`, qui installe Lefthook automatiquement. La commande ci-dessus reste utile si les hooks ne sont pas présents après un clone ou un changement d'environnement.
 
+Créer les fichiers d'environnement locaux :
+
+```bash
+cp .env.example .env
+cp packages/database/.env.example packages/database/.env
+```
+
+Le premier fichier configure les services Docker locaux. Le second fournit `DATABASE_URL` aux
+commandes Prisma. Ces fichiers ne doivent pas être commités.
+
 ## Lancer le projet
 
 Pour lancer toutes les tâches de développement déclarées dans les workspaces :
@@ -104,7 +115,7 @@ Les commandes suivent une nomenclature simple :
 
 - `pnpm <tâche>` lance la tâche sur tous les workspaces concernés via Turbo.
 - `pnpm <workspace>:<tâche>` lance la même tâche sur un workspace précis.
-- Les workspaces disponibles sont `api`, `web` et `docs`.
+- Les workspaces disponibles sont `api`, `web`, `docs` et `database`.
 - Les commandes `dev` sont des serveurs persistants et ne sont pas mises en cache par Turbo.
 
 Exemples :
@@ -114,6 +125,7 @@ pnpm build
 pnpm api:build
 pnpm web:build
 pnpm docs:build
+pnpm database:build
 ```
 
 Lister les packages du workspace :
@@ -163,6 +175,7 @@ Lancer le lint sur un workspace précis :
 pnpm api:lint
 pnpm web:lint
 pnpm docs:lint
+pnpm database:lint
 ```
 
 Formater le code avec Biome :
@@ -177,6 +190,7 @@ Formater un workspace précis :
 pnpm api:format
 pnpm web:format
 pnpm docs:format
+pnpm database:format
 ```
 
 Vérifier le formatage sans modifier les fichiers :
@@ -191,6 +205,7 @@ Vérifier le formatage d'un workspace précis :
 pnpm api:format:check
 pnpm web:format:check
 pnpm docs:format:check
+pnpm database:format:check
 ```
 
 Vérifier le formatage, le lint et les règles Biome :
@@ -205,6 +220,7 @@ Vérifier un workspace précis :
 pnpm api:check
 pnpm web:check
 pnpm docs:check
+pnpm database:check
 ```
 
 Vérifier les types TypeScript :
@@ -218,6 +234,7 @@ Vérifier les types d'un workspace précis :
 ```bash
 pnpm api:typecheck
 pnpm web:typecheck
+pnpm database:typecheck
 ```
 
 Il n'y a pas de commande `docs:typecheck`, car VitePress est vérifié via `pnpm docs:build`.
@@ -234,6 +251,7 @@ Corriger automatiquement un workspace précis :
 pnpm api:check:fix
 pnpm web:check:fix
 pnpm docs:check:fix
+pnpm database:check:fix
 ```
 
 Détecter les dépendances inutilisées et le code mort :
@@ -249,6 +267,42 @@ pnpm verify
 ```
 
 Cette commande enchaîne `pnpm check`, `pnpm knip`, `pnpm typecheck` et `pnpm test`.
+
+## Base de données
+
+Le workspace `@depot-numerique/database` centralise Prisma pour l'API et les futurs workers.
+PostgreSQL stocke les métadonnées métier et les références MinIO ; les fichiers binaires restent
+dans MinIO.
+
+Commandes principales :
+
+```bash
+pnpm database:build
+pnpm database:lint
+pnpm database:format
+pnpm database:format:check
+pnpm database:check
+pnpm database:check:fix
+pnpm database:typecheck
+pnpm database:generate
+pnpm database:validate
+pnpm database:migrate:dev --name description
+pnpm database:migrate:deploy
+pnpm database:migrate:status
+pnpm database:seed
+pnpm database:studio
+```
+
+Le workspace database n'a pas encore de commande de test dédiée.
+
+Les migrations créées en développement sont versionnées dans
+`packages/database/prisma/migrations`. En recette et en production, la CI/CD applique ces mêmes
+migrations avec `pnpm database:migrate:deploy` sur la base de l'environnement concerné.
+
+Le seed initial crée les juridictions `TJ-LILLE`, `TJ-ARRAS`, `TJ-DOUAI` et `TJ-CAMBRAI`, chacune
+avec les services `AUD`, `BAJ`, `BOG`, `JAF` et `JAP`. Il est destiné au développement et aux tests.
+
+La documentation détaillée se trouve dans [`docs/database.md`](docs/database.md).
 
 ## Qualité de code
 
@@ -397,6 +451,7 @@ apps/
   web/    # Frontend Angular
 docs/     # Documentation VitePress
 packages/
+  database/ # Schéma, migrations, seed et client Prisma
 ```
 
 ## Stack

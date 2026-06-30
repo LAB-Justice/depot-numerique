@@ -48,4 +48,5 @@ Le cycle cible est le suivant : un agent dépose un document depuis l'interface 
 ## Documentation disponible
 
 - [Développement local](/development)
+- [Base de données et migrations](/database)
 - [API](/api)

@@ -8,6 +8,7 @@ export default defineConfig({
     nav: [
       { text: 'Accueil', link: '/' },
       { text: 'Développement', link: '/development' },
+      { text: 'Base de données', link: '/database' },
       { text: 'API', link: '/api' },
     ],
 
@@ -16,6 +17,7 @@ export default defineConfig({
         text: 'Projet',
         items: [
           { text: 'Développement', link: '/development' },
+          { text: 'Base de données', link: '/database' },
           { text: 'API', link: '/api' },
         ],
       },

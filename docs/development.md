@@ -12,6 +12,7 @@ apps/
   web/    # Frontend Angular
 docs/     # Documentation VitePress
 packages/
+  database/ # Schéma, migrations, seed et client Prisma
 ```
 
 Applications disponibles :
@@ -19,6 +20,7 @@ Applications disponibles :
 - `api` : backend NestJS ;
 - `web` : frontend Angular ;
 - `@depot-numerique/docs` : documentation VitePress.
+- `@depot-numerique/database` : accès PostgreSQL partagé avec Prisma.
 
 ## Prérequis
 
@@ -37,6 +39,16 @@ Installer les dépendances :
 ```bash
 pnpm install
 ```
+
+Créer les fichiers d'environnement locaux :
+
+```bash
+cp .env.example .env
+cp packages/database/.env.example packages/database/.env
+```
+
+Le `.env` racine configure Docker Compose. Le `.env` du workspace database contient uniquement
+`DATABASE_URL` pour les commandes Prisma. Aucun de ces deux fichiers ne doit être commité.
 
 Installer les hooks Git locaux si nécessaire :
 
@@ -140,6 +152,7 @@ Workspaces disponibles :
 - `api` : API NestJS.
 - `web` : frontend Angular.
 - `docs` : documentation VitePress.
+- `database` : schéma et client Prisma.
 
 Tâches principales :
 
@@ -227,7 +240,51 @@ pnpm docs:check
 pnpm docs:check:fix
 ```
 
-La documentation n'a pas encore de commande `docs:test` ni `docs:typecheck`. Le build VitePress avec `pnpm docs:build` sert de vérification principale.
+La documentation n'a pas encore de commande `docs:test` ni `docs:typecheck`. Le build VitePress
+avec `pnpm docs:build` sert de vérification principale.
+
+Commandes ciblées base de données :
+
+```bash
+pnpm database:build
+pnpm database:typecheck
+pnpm database:lint
+pnpm database:format
+pnpm database:format:check
+pnpm database:check
+pnpm database:check:fix
+pnpm database:validate
+pnpm database:generate
+pnpm database:migrate:dev
+pnpm database:migrate:deploy
+pnpm database:migrate:status
+pnpm database:seed
+pnpm database:studio
+```
+
+Le workspace database n'a pas encore de commande de test dédiée.
+
+## Base de données locale
+
+Lancer PostgreSQL puis créer la migration correspondant à une modification du schéma :
+
+```bash
+docker compose up -d postgres
+pnpm database:migrate:dev --name description
+```
+
+Initialiser ou remettre à jour les données de développement :
+
+```bash
+pnpm database:seed
+```
+
+Une migration est un historique SQL versionné, pas une copie de la base locale. Les dossiers
+créés dans `packages/database/prisma/migrations` sont commités puis appliqués sur les autres bases
+avec `pnpm database:migrate:deploy` par la CI/CD.
+
+Consulter [Base de données et migrations](./database.md) pour le modèle, le seed et les règles de
+déploiement.
 
 ## Documentation
 

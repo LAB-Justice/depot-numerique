@@ -14,6 +14,11 @@
     },
     "docs": {
       "project": [".vitepress/**/*.ts"]
+    },
+    "packages/database": {
+      "entry": ["src/client.ts"],
+      "project": ["src/**/*.ts", "prisma/**/*.ts"],
+      "ignoreDependencies": ["@prisma/client", "pg", "@types/pg"]
     }
   },
   "ignoreDependencies": ["vue"]

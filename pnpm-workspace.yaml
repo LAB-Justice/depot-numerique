@@ -4,9 +4,11 @@ packages:
   - "packages/*"
 allowBuilds:
   "@parcel/watcher": true
+  '@prisma/engines': true
   '@scarf/scarf': true
   esbuild: true
   lefthook: true
   lmdb: true
   msgpackr-extract: true
+  prisma: true
   unrs-resolver: true
