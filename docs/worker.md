@@ -17,6 +17,7 @@ apps/worker/
       test/
         test.module.ts            # Enregistrement de la queue `test`
         test.processor.ts         # @Processor('test')
+        test.processor.spec.ts    # Test unitaire du traitement de démonstration
         test.dto.ts               # Payload et résultat typés
 ```
 
@@ -98,9 +99,11 @@ pnpm worker:format:check
 pnpm worker:check
 pnpm worker:check:fix
 pnpm worker:typecheck
+pnpm worker:test
 ```
 
-Le workspace worker n'a pas encore de commande de test dédiée.
+`pnpm worker:test` vérifie que le processor de démonstration consomme le payload attendu et retourne
+un message traité avec un horodatage valide. Il s'agit d'un test unitaire : Redis n'est pas requis.
 
 ## Règles de production
 
