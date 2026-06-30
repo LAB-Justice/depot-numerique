@@ -3,7 +3,8 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".angular/**", ".vitepress/dist/**"]
+      "outputs": ["dist/**", ".angular/**", ".vitepress/dist/**"],
+      "passThroughEnv": ["DATABASE_URL"]
     },
     "lint": {
       "dependsOn": ["^lint"],
@@ -27,7 +28,8 @@
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
-      "outputs": []
+      "outputs": [],
+      "passThroughEnv": ["DATABASE_URL"]
     },
     "dev": {
       "cache": false,
