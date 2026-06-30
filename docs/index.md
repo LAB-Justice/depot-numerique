@@ -50,3 +50,4 @@ Le cycle cible est le suivant : un agent dépose un document depuis l'interface 
 - [Développement local](/development)
 - [Base de données et migrations](/database)
 - [API](/api)
+- [Workers BullMQ](/worker)

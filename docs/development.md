@@ -8,9 +8,10 @@ Le dépôt est un monorepo `pnpm` piloté avec `Turbo`.
 
 ```text
 apps/
-  api/    # API NestJS
-  web/    # Frontend Angular
-docs/     # Documentation VitePress
+  api/      # API NestJS
+  web/      # Frontend Angular
+  worker/   # Workers BullMQ (pipeline de dépôt)
+docs/       # Documentation VitePress
 packages/
   database/ # Schéma, migrations, seed et client Prisma
 ```
@@ -19,6 +20,7 @@ Applications disponibles :
 
 - `api` : backend NestJS ;
 - `web` : frontend Angular ;
+- `worker` : workers BullMQ (pré-traitement, correction, dépôt) ;
 - `@depot-numerique/docs` : documentation VitePress.
 - `@depot-numerique/database` : accès PostgreSQL partagé avec Prisma.
 
@@ -45,10 +47,13 @@ Créer les fichiers d'environnement locaux :
 ```bash
 cp .env.example .env
 cp packages/database/.env.example packages/database/.env
+cp apps/worker/.env.example apps/worker/.env
 ```
 
-Le `.env` racine configure Docker Compose. Le `.env` du workspace database contient uniquement
-`DATABASE_URL` pour les commandes Prisma. Aucun de ces deux fichiers ne doit être commité.
+Le `.env` racine configure Docker Compose et expose les variables partagées (Redis, Postgres, MinIO).
+Le `.env` du workspace database contient uniquement `DATABASE_URL` pour les commandes Prisma. Le
+`.env` du workspace worker contient les variables spécifiques au worker (`WORKER_PORT`, `NODE_ENV`).
+Aucun de ces fichiers ne doit être commité.
 
 Installer les hooks Git locaux si nécessaire :
 
@@ -62,7 +67,7 @@ Les commandes de développement suivent la même convention que les autres tâch
 
 - `pnpm dev` lance tous les serveurs de développement disponibles.
 - `pnpm apps:dev` lance uniquement les applications métier, donc `api` et `web`.
-- `pnpm <workspace>:dev` lance un seul workspace.
+- `pnpm <workspace>:dev` lance un seul workspace (`api:dev`, `web:dev`, `worker:dev`).
 
 Les serveurs `dev` sont déclarés comme persistants dans Turbo : ils restent actifs tant que le terminal est ouvert et ne sont pas mis en cache.
 
