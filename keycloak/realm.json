@@ -1,0 +1,209 @@
+{
+  "realm": "depot-numerique",
+  "displayName": "Dépôt Numérique - SSO local",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "rememberMe": true,
+  "loginWithEmailAllowed": true,
+  "resetPasswordAllowed": false,
+  "accessTokenLifespan": 300,
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"jurisdiction_code\",\"displayName\":\"Juridiction\",\"group\":\"professional-context\",\"validations\":{\"length\":{\"max\":100}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"service_code\",\"displayName\":\"Service\",\"group\":\"professional-context\",\"validations\":{\"length\":{\"max\":100}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"professional-context\",\"displayHeader\":\"Affectation professionnelle\",\"displayDescription\":\"Juridiction et service de rattachement\"}]}"
+          ]
+        }
+      }
+    ]
+  },
+  "roles": {
+    "client": {
+      "depot-numerique": [
+        {
+          "name": "agent",
+          "description": "Agent chargé de déposer et suivre ses documents",
+          "composite": false,
+          "clientRole": true
+        },
+        {
+          "name": "chef_service",
+          "description": "Chef de service au sein du tribunal judiciaire, supervise les agents et leurs dépôts",
+          "composite": false,
+          "clientRole": true
+        },
+        {
+          "name": "directeur_greffe",
+          "description": "Directeur de greffe, responsable de l'organisation du greffe et des dépôts du tribunal judiciaire",
+          "composite": false,
+          "clientRole": true
+        }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "depot-numerique",
+      "name": "Dépôt Numérique",
+      "description": "Client OIDC local de l'application Dépôt Numérique",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "redirectUris": ["http://localhost:4200/*"],
+      "webOrigins": ["http://localhost:4200"],
+      "defaultClientScopes": ["web-origins", "acr", "roles", "profile", "basic", "email"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4200/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "application-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "depot-numerique",
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        },
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "depot-numerique",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        },
+        {
+          "name": "jurisdiction-code",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "jurisdiction_code",
+            "claim.name": "jurisdiction_code",
+            "jsonType.label": "String",
+            "multivalued": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        },
+        {
+          "name": "service-code",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "service_code",
+            "claim.name": "service_code",
+            "jsonType.label": "String",
+            "multivalued": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "432c4df5-9f48-4c9a-94c1-a287ef725dbf",
+      "username": "agent.olivier",
+      "email": "agent.olivier@local.invalid",
+      "firstName": "Olivier",
+      "lastName": "Agent",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "jurisdiction_code": ["TJ-LILLE"],
+        "service_code": ["BAJ"]
+      },
+      "clientRoles": {
+        "depot-numerique": ["agent"],
+        "account": ["manage-account", "manage-account-links", "view-profile"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "996264d4-7dc6-4d99-a417-26ded78a57da",
+      "username": "chef-service.pierre",
+      "email": "chef-service.pierre@local.invalid",
+      "firstName": "Pierre",
+      "lastName": "Chef de service",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "jurisdiction_code": ["TJ-LILLE"],
+        "service_code": ["BAJ"]
+      },
+      "clientRoles": {
+        "depot-numerique": ["chef_service"],
+        "account": ["manage-account", "manage-account-links", "view-profile"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "11b4529d-eb6a-4271-b5f0-881cc4eeeedc",
+      "username": "directeur-greffe.herve",
+      "email": "directeur-greffe.herve@local.invalid",
+      "firstName": "Hervé",
+      "lastName": "Directeur de greffe",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "jurisdiction_code": ["TJ-LILLE"]
+      },
+      "clientRoles": {
+        "depot-numerique": ["directeur_greffe"],
+        "account": ["manage-account", "manage-account-links", "view-profile"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}
