@@ -12,6 +12,11 @@
       "entry": ["src/app/app.config.ts", "src/app/app.routes.ts", "src/**/*.spec.ts"],
       "project": ["src/**/*.ts"]
     },
+    "apps/worker": {
+      "entry": ["src/main.ts", "src/**/*.module.ts"],
+      "project": ["src/**/*.ts"],
+      "ignoreDependencies": ["ioredis"]
+    },
     "docs": {
       "project": [".vitepress/**/*.ts"]
     },
