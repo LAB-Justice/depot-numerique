@@ -10,6 +10,7 @@ export default defineConfig({
       { text: 'Développement', link: '/development' },
       { text: 'Base de données', link: '/database' },
       { text: 'API', link: '/api' },
+      { text: 'Workers', link: '/worker' },
     ],
 
     sidebar: [
@@ -19,6 +20,7 @@ export default defineConfig({
           { text: 'Développement', link: '/development' },
           { text: 'Base de données', link: '/database' },
           { text: 'API', link: '/api' },
+          { text: 'Workers', link: '/worker' },
         ],
       },
     ],

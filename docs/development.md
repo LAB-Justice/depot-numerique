@@ -8,9 +8,10 @@ Le dépôt est un monorepo `pnpm` piloté avec `Turbo`.
 
 ```text
 apps/
-  api/    # API NestJS
-  web/    # Frontend Angular
-docs/     # Documentation VitePress
+  api/      # API NestJS
+  web/      # Frontend Angular
+  worker/   # Workers BullMQ (pipeline de dépôt)
+docs/       # Documentation VitePress
 packages/
   database/ # Schéma, migrations, seed et client Prisma
 ```
@@ -19,6 +20,7 @@ Applications disponibles :
 
 - `api` : backend NestJS ;
 - `web` : frontend Angular ;
+- `worker` : workers BullMQ (pré-traitement, correction, dépôt) ;
 - `@depot-numerique/docs` : documentation VitePress.
 - `@depot-numerique/database` : accès PostgreSQL partagé avec Prisma.
 
@@ -44,11 +46,16 @@ Créer les fichiers d'environnement locaux :
 
 ```bash
 cp .env.example .env
+cp apps/api/.env.example apps/api/.env
 cp packages/database/.env.example packages/database/.env
+cp apps/worker/.env.example apps/worker/.env
 ```
 
-Le `.env` racine configure Docker Compose. Le `.env` du workspace database contient uniquement
-`DATABASE_URL` pour les commandes Prisma. Aucun de ces deux fichiers ne doit être commité.
+Le `.env` racine configure Docker Compose et expose les variables partagées (Redis, Postgres, MinIO).
+Le `.env` du workspace API configure son port (`API_PORT`) et son mode d'exécution (`NODE_ENV`). Le
+`.env` du workspace database contient uniquement `DATABASE_URL` pour les commandes Prisma. Le `.env`
+du workspace worker contient son port (`WORKER_PORT`) et son mode d'exécution (`NODE_ENV`). Aucun de
+ces fichiers ne doit être commité.
 
 Installer les hooks Git locaux si nécessaire :
 
@@ -60,19 +67,21 @@ pnpm prepare
 
 Les commandes de développement suivent la même convention que les autres tâches du monorepo :
 
-- `pnpm dev` lance tous les serveurs de développement disponibles.
-- `pnpm apps:dev` lance uniquement les applications métier, donc `api` et `web`.
-- `pnpm <workspace>:dev` lance un seul workspace.
+- `pnpm dev` démarre PostgreSQL, Redis et MinIO avec Docker Compose, attend leur disponibilité, puis
+  lance l'API, le frontend, le worker et la documentation.
+- `pnpm infra:dev` démarre uniquement les services techniques Docker.
+- `pnpm apps:dev` lance uniquement les applications métier : `api`, `web` et `worker`.
+- `pnpm <workspace>:dev` lance un seul workspace (`api:dev`, `web:dev`, `worker:dev`).
 
 Les serveurs `dev` sont déclarés comme persistants dans Turbo : ils restent actifs tant que le terminal est ouvert et ne sont pas mis en cache.
 
-Lancer l'API, le frontend et la documentation :
+Lancer tout l'environnement local :
 
 ```bash
 pnpm dev
 ```
 
-Lancer seulement l'API et le frontend :
+Lancer les applications métier sans l'infrastructure Docker ni la documentation :
 
 ```bash
 pnpm apps:dev
@@ -90,6 +99,12 @@ Lancer seulement le frontend :
 pnpm web:dev
 ```
 
+Lancer seulement le worker :
+
+```bash
+pnpm worker:dev
+```
+
 Lancer seulement la documentation :
 
 ```bash
@@ -104,10 +119,10 @@ URLs locales :
 
 ## Services Docker
 
-Les services techniques locaux sont lancés avec Docker Compose.
+Les services techniques locaux sont lancés automatiquement par `pnpm dev`. Pour les démarrer seuls :
 
 ```bash
-docker compose up -d
+pnpm infra:dev
 ```
 
 Services disponibles :
@@ -153,6 +168,7 @@ Workspaces disponibles :
 - `web` : frontend Angular.
 - `docs` : documentation VitePress.
 - `database` : schéma et client Prisma.
+- `worker` : traitements asynchrones BullMQ.
 
 Tâches principales :
 
@@ -226,6 +242,23 @@ pnpm web:format:check
 pnpm web:check
 pnpm web:check:fix
 ```
+
+Commandes ciblées worker :
+
+```bash
+pnpm worker:dev
+pnpm worker:build
+pnpm worker:test
+pnpm worker:typecheck
+pnpm worker:lint
+pnpm worker:format
+pnpm worker:format:check
+pnpm worker:check
+pnpm worker:check:fix
+```
+
+Le test du worker vérifie le traitement et le résultat de la queue de démonstration sans nécessiter
+de connexion à Redis.
 
 Commandes ciblées documentation :
 

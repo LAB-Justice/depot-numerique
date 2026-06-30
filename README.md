@@ -6,6 +6,7 @@ Le projet est initialisé en monorepo avec `pnpm` et `Turbo`. Il contient actuel
 
 - `apps/api` : API NestJS ;
 - `apps/web` : frontend Angular ;
+- `apps/worker` : workers BullMQ ;
 - `packages/database` : schéma, migrations, seed et client Prisma partagés ;
 - `docs` : documentation VitePress ;
 - `turbo.json` : configuration des tâches monorepo ;
@@ -61,23 +62,29 @@ Créer les fichiers d'environnement locaux :
 
 ```bash
 cp .env.example .env
+cp apps/api/.env.example apps/api/.env
 cp packages/database/.env.example packages/database/.env
+cp apps/worker/.env.example apps/worker/.env
 ```
 
-Le premier fichier configure les services Docker locaux. Le second fournit `DATABASE_URL` aux
-commandes Prisma. Ces fichiers ne doivent pas être commités.
+Le fichier racine configure PostgreSQL, Redis et MinIO. Le fichier de l'API définit `API_PORT` et
+`NODE_ENV`, celui de Prisma fournit `DATABASE_URL`, et celui du worker définit `WORKER_PORT` et
+`NODE_ENV`. Ces fichiers ne doivent pas être commités.
 
 ## Lancer le projet
 
-Pour lancer toutes les tâches de développement déclarées dans les workspaces :
+Pour démarrer les services Docker, attendre leur disponibilité, puis lancer toutes les tâches de
+développement déclarées dans les workspaces :
 
 ```bash
 pnpm dev
 ```
 
-Cette commande passe par Turbo et lance les scripts `dev` des packages qui en possèdent un, actuellement l'API, le frontend et la documentation.
+Cette commande lance PostgreSQL, Redis et MinIO, puis Turbo démarre l'API, le frontend, le worker et
+la documentation.
 
-Pour lancer seulement le backend NestJS et le frontend Angular :
+Pour lancer l'API NestJS, le frontend Angular et le worker BullMQ sans démarrer l'infrastructure
+Docker ni la documentation :
 
 ```bash
 pnpm apps:dev
@@ -109,13 +116,19 @@ Documentation VitePress :
 pnpm docs:dev
 ```
 
+Worker BullMQ :
+
+```bash
+pnpm worker:dev
+```
+
 ## Commandes utiles
 
 Les commandes suivent une nomenclature simple :
 
 - `pnpm <tâche>` lance la tâche sur tous les workspaces concernés via Turbo.
 - `pnpm <workspace>:<tâche>` lance la même tâche sur un workspace précis.
-- Les workspaces disponibles sont `api`, `web`, `docs` et `database`.
+- Les workspaces disponibles sont `api`, `web`, `worker`, `docs` et `database`.
 - Les commandes `dev` sont des serveurs persistants et ne sont pas mises en cache par Turbo.
 
 Exemples :
@@ -126,6 +139,7 @@ pnpm api:build
 pnpm web:build
 pnpm docs:build
 pnpm database:build
+pnpm worker:build
 ```
 
 Lister les packages du workspace :
@@ -159,9 +173,11 @@ Lancer les tests d'un workspace précis :
 ```bash
 pnpm api:test
 pnpm web:test
+pnpm worker:test
 ```
 
-Il n'y a pas encore de commande `docs:test`, car la documentation n'expose pas de script de test.
+Le test du worker couvre le processor de la queue de démonstration sans nécessiter Redis. Il n'y a
+pas de commande `docs:test`, car la documentation n'expose pas de script de test.
 
 Lancer le lint Biome :
 
@@ -176,6 +192,7 @@ pnpm api:lint
 pnpm web:lint
 pnpm docs:lint
 pnpm database:lint
+pnpm worker:lint
 ```
 
 Formater le code avec Biome :
@@ -191,6 +208,7 @@ pnpm api:format
 pnpm web:format
 pnpm docs:format
 pnpm database:format
+pnpm worker:format
 ```
 
 Vérifier le formatage sans modifier les fichiers :
@@ -206,6 +224,7 @@ pnpm api:format:check
 pnpm web:format:check
 pnpm docs:format:check
 pnpm database:format:check
+pnpm worker:format:check
 ```
 
 Vérifier le formatage, le lint et les règles Biome :
@@ -221,6 +240,7 @@ pnpm api:check
 pnpm web:check
 pnpm docs:check
 pnpm database:check
+pnpm worker:check
 ```
 
 Vérifier les types TypeScript :
@@ -235,6 +255,7 @@ Vérifier les types d'un workspace précis :
 pnpm api:typecheck
 pnpm web:typecheck
 pnpm database:typecheck
+pnpm worker:typecheck
 ```
 
 Il n'y a pas de commande `docs:typecheck`, car VitePress est vérifié via `pnpm docs:build`.
@@ -252,6 +273,7 @@ pnpm api:check:fix
 pnpm web:check:fix
 pnpm docs:check:fix
 pnpm database:check:fix
+pnpm worker:check:fix
 ```
 
 Détecter les dépendances inutilisées et le code mort :
