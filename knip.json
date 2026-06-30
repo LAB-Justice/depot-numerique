@@ -13,7 +13,7 @@
       "project": ["src/**/*.ts"]
     },
     "apps/worker": {
-      "entry": ["src/main.ts", "src/**/*.module.ts"],
+      "entry": ["src/main.ts", "src/**/*.module.ts", "src/**/*.spec.ts"],
       "project": ["src/**/*.ts"],
       "ignoreDependencies": ["ioredis"]
     },
