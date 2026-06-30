@@ -1,0 +1,88 @@
+name: Semgrep Security Scan
+
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: sast-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semgrep:
+    name: Analyse de sécurité
+    runs-on: ubuntu-24.04
+    container:
+      image: semgrep/semgrep:1.168.0
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4.2.2
+
+      # Un seul scan Semgrep en SARIF : le seuil bloquant lit ce même fichier
+      # pour éviter une double exécution coûteuse.
+      - name: Scan Semgrep SARIF
+        run: |
+          semgrep --config=p/security-audit \
+                  --config=p/owasp-top-ten \
+                  --config=p/secrets \
+                  --sarif \
+                  -o semgrep-results.sarif \
+                  .
+
+      - name: Upload SARIF vers GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        if: ${{ always() && hashFiles('semgrep-results.sarif') != '' }}
+        with:
+          sarif_file: semgrep-results.sarif
+          category: semgrep-sast
+
+      # Seuil bloquant : échoue si un finding est de sévérité ERROR, ou s'il
+      # provient du pack p/secrets (ruleId contenant "secret"), quel que soit
+      # son niveau. Un secret leaké ne doit jamais passer la PR.
+      - name: Bloquer sur findings critiques ou secrets
+        run: |
+          python3 <<'PY'
+          import json
+          import sys
+
+          with open("semgrep-results.sarif", encoding="utf-8") as results_file:
+              sarif = json.load(results_file)
+
+          blocking = []
+          for run in sarif.get("runs", []):
+              for finding in run.get("results", []):
+                  level = finding.get("level", "warning")
+                  rule_id = finding.get("ruleId", "")
+                  if level == "error" or "secret" in rule_id.lower():
+                      location = finding.get("locations", [{}])[0]
+                      region = location.get("physicalLocation", {}).get("region", {})
+                      path = location.get("physicalLocation", {}).get("artifactLocation", {}).get("uri", "unknown")
+                      line = region.get("startLine", "?")
+                      message = finding.get("message", {}).get("text", "").replace("\n", " ")
+                      blocking.append(f"- {path}:{line} [{rule_id}] ({level}) {message}")
+
+          if not blocking:
+              print("Aucun finding Semgrep bloquant (ERROR ou secret).")
+              sys.exit(0)
+
+          print(f"{len(blocking)} finding(s) Semgrep bloquant(s) détecté(s) :")
+          for line in blocking:
+              print(line)
+
+          sys.exit(1)
+          PY
+
+      - name: Upload des résultats
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: semgrep-results
+          path: |
+            semgrep-results.sarif

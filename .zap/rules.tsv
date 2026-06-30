@@ -1,0 +1,6 @@
+# rule_id	action	description
+10011	WARN	Cookie Without Secure Flag
+10015	WARN	Incomplete or No Cache-control and Pragma HTTP Header Set
+10020	WARN	Missing Anti-clickjacking Header
+10021	WARN	X-Content-Type-Options Header Missing
+10035	WARN	Strict-Transport-Security Header Not Set

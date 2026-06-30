@@ -1,0 +1,55 @@
+name: SCA Security Scan
+
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: sca-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trivy:
+    name: Analyse des vulnérabilités de dépendances
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4.2.2
+
+      # Scan filesystem du dépôt : couvre pnpm-lock.yaml et tous les
+      # package-lock.json / yarn.lock du monorepo. exit-code: '1' fait échouer
+      # le job si une vulnérabilité HIGH ou CRITICAL est détectée, ce qui sert
+      # de seuil bloquant. Le SARIF est produit même en cas d'échec grâce au
+      # upload en if: always().
+      - name: Scan Trivy des dépendances
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Upload SARIF vers GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        if: ${{ always() && hashFiles('trivy-results.sarif') != '' }}
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-sca
+
+      - name: Upload des résultats
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: sca-results
+          path: |
+            trivy-results.sarif

@@ -1,0 +1,256 @@
+name: Security Report
+
+# Reporter unifié : déclenché à la fin de chaque scan (SAST/SCA/DAST).
+# Ne poste le commentaire que lorsque les 3 sont terminés pour un même commit.
+on:
+  workflow_run:
+    workflows: ["Semgrep Security Scan", "SCA Security Scan", "DAST Security Scan"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read        # lire les runs/artifacts des autres workflows
+  pull-requests: write # poster le commentaire sur la PR
+
+concurrency:
+  group: security-report-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  report:
+    name: Rapport de sécurité
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+
+    steps:
+      - name: Vérifier que les 3 scans sont terminés
+        id: wait
+        run: |
+          set -eu
+          missing=""
+          for wf in "Semgrep Security Scan" "SCA Security Scan" "DAST Security Scan"; do
+            status=$(gh run list --repo "$REPO" --workflow "$wf" --commit "$SHA" \
+                      --json status --jq '.[0].status' 2>/dev/null || echo "")
+            echo "$wf -> ${status:-introuvable}"
+            if [ "$status" != "completed" ]; then
+              missing="$missing $wf"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "En attente de:$missing"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Télécharger les artifacts SARIF
+        if: steps.wait.outputs.ready == 'true'
+        run: |
+          set -eu
+          mkdir -p sarif
+          # Associe chaque workflow à son artifact et fichier(s) de résultats.
+          #   "Nom du workflow|nom de l'artifact|chemin/du/fichier"
+          entries=(
+            "Semgrep Security Scan|semgrep-results|semgrep-results.sarif"
+            "SCA Security Scan|sca-results|trivy-results.sarif"
+            "DAST Security Scan|dast-results|nuclei-dast-frontend-results.sarif"
+            "DAST Security Scan|dast-results|nuclei-dast-api-results.sarif"
+            "DAST Security Scan|dast-results|zap-out/zap-dast-frontend-report.json"
+            "DAST Security Scan|dast-results|zap-out/zap-dast-api-report.json"
+          )
+          # Un artifact peut être téléchargé une seule fois par run : on garde
+          # la trace des run-ids déjà traités.
+          declare -A done_runs
+          for entry in "${entries[@]}"; do
+            IFS='|' read -r wf artifact result_file <<< "$entry"
+            run_id=$(gh run list --repo "$REPO" --workflow "$wf" --commit "$SHA" \
+                      --json databaseId --jq '.[0].databaseId')
+            if [ -z "${done_runs[$run_id]:-}" ]; then
+              # --dir pointe vers un sous-dossier par artifact pour éviter les
+              # collisions de fichiers ; on lève ensuite les résultats à la racine.
+              gh run download "$run_id" --repo "$REPO" --name "$artifact" --dir "sarif/$artifact" || true
+              done_runs[$run_id]=1
+            fi
+            if [ -f "sarif/$artifact/$result_file" ]; then
+              cp "sarif/$artifact/$result_file" "sarif/$(basename "$result_file")"
+            fi
+          done
+          ls -la sarif/
+
+      - name: Générer le rapport markdown
+        if: steps.wait.outputs.ready == 'true'
+        id: gen
+        run: |
+          python3 <<'PY'
+          import json, os, pathlib
+
+          # (label_scanner, label_outil, chemin_sarif)
+          sarif_sources = [
+              ("SAST", "Semgrep",            "sarif/semgrep-results.sarif"),
+              ("SCA",  "Trivy",              "sarif/trivy-results.sarif"),
+              ("DAST", "Nuclei (frontend)",  "sarif/nuclei-dast-frontend-results.sarif"),
+              ("DAST", "Nuclei (api)",       "sarif/nuclei-dast-api-results.sarif"),
+          ]
+
+          # (label_scanner, label_outil, chemin_json)
+          zap_sources = [
+              ("DAST", "ZAP (frontend)", "sarif/zap-dast-frontend-report.json"),
+              ("DAST", "ZAP (api)",      "sarif/zap-dast-api-report.json"),
+          ]
+
+          # Ordre de sévérité SARIF -> bucket d'affichage.
+          def bucket(level, severity):
+              s = (severity or level or "").lower()
+              if s == "critical": return "critical"
+              if s == "error" or s == "high": return "high"
+              if s == "warning" or s == "medium": return "medium"
+              return "info"
+
+          def status_for(counts):
+              if (counts["critical"] + counts["high"]) > 0:
+                  return "❌ Échec"
+              if (counts["medium"] + counts["info"]) > 0:
+                  return "⚠️ À vérifier"
+              return "✅ Pass"
+
+          rows = []
+          findings = []  # détail pour le bloc "Findings"
+          for scanner, tool, path in sarif_sources:
+              counts = {"critical": 0, "high": 0, "medium": 0, "info": 0}
+              if not pathlib.Path(path).exists():
+                  rows.append((scanner, tool, counts, "⚠️ manquant"))
+                  continue
+              try:
+                  with open(path, encoding="utf-8") as f:
+                      sarif = json.load(f)
+              except Exception as e:
+                  rows.append((scanner, tool, counts, f"⚠️ illisible ({e})"))
+                  continue
+
+              rules_index = {}
+              for run in sarif.get("runs", []):
+                  driver = run.get("tool", {}).get("driver", {})
+                  for r in driver.get("rules", []):
+                      rules_index[r.get("id")] = r
+                  for res in run.get("results", []):
+                      rule_id = res.get("ruleId", "unknown")
+                      rule = rules_index.get(rule_id, {})
+                      # level du résultat sinon de la règle, sinon "warning".
+                      level = res.get("level") or rule.get("defaultConfiguration", {}).get("level", "warning")
+                      sev = rule.get("properties", {}).get("security_severity_level") \
+                            or rule.get("properties", {}).get("precision")
+                      b = bucket(level, sev)
+                      counts[b] += 1
+                      loc = res.get("locations", [{}])[0].get("physicalLocation", {})
+                      art = loc.get("artifactLocation", {}).get("uri", "?")
+                      line = loc.get("region", {}).get("startLine", "?")
+                      msg = res.get("message", {}).get("text", "") or rule.get("shortDescription", {}).get("text", "")
+                      findings.append((b, scanner, f"{art}:{line}", rule_id, msg.replace("\n", " ")[:160]))
+
+              rows.append((scanner, tool, counts, status_for(counts)))
+
+          for scanner, tool, path in zap_sources:
+              counts = {"critical": 0, "high": 0, "medium": 0, "info": 0}
+              if not pathlib.Path(path).exists():
+                  rows.append((scanner, tool, counts, "⚠️ manquant"))
+                  continue
+              try:
+                  with open(path, encoding="utf-8") as f:
+                      zap = json.load(f)
+              except Exception as e:
+                  rows.append((scanner, tool, counts, f"⚠️ illisible ({e})"))
+                  continue
+
+              sites = zap.get("site", [])
+              if isinstance(sites, dict):
+                  sites = [sites]
+
+              for site in sites:
+                  for alert in site.get("alerts", []):
+                      risk = (alert.get("riskdesc") or alert.get("risk") or "").split()[0].lower()
+                      if risk == "critical":
+                          b = "critical"
+                      elif risk == "high":
+                          b = "high"
+                      elif risk == "medium":
+                          b = "medium"
+                      else:
+                          b = "info"
+
+                      instances = alert.get("instances") or []
+                      count = max(1, len(instances))
+                      counts[b] += count
+
+                      loc = "?"
+                      if instances:
+                          loc = instances[0].get("uri", "?")
+                      rule_id = str(alert.get("pluginid") or alert.get("pluginId") or "zap")
+                      msg = alert.get("alert") or alert.get("name") or ""
+                      findings.append((b, scanner, loc, rule_id, msg.replace("\n", " ")[:160]))
+
+              rows.append((scanner, tool, counts, status_for(counts)))
+
+          # Tableau récapitulatif.
+          lines = []
+          lines.append("## 🔒 Rapport de sécurité")
+          lines.append("")
+          lines.append("| Scanner | Outil | 🔴 Critical | 🟠 High | 🟡 Medium | ℹ️ Low/Info | Statut |")
+          lines.append("|---|---|---|---|---|---|---|")
+          for scanner, tool, c, status in rows:
+              lines.append(f"| {scanner} | {tool} | {c['critical']} | {c['high']} | {c['medium']} | {c['info']} | {status} |")
+
+          # Détail des findings (high/critical d'abord).
+          flagged = [f for f in findings if f[0] in ("critical", "high")]
+          if flagged:
+              lines.append("")
+              lines.append(f"**{len(flagged)} finding(s) bloquant(s) (high/critical) :**")
+              for _, scanner, loc, rule_id, msg in sorted(flagged, key=lambda x: x[0])[:20]:
+                  lines.append(f"- `{loc}` — **{scanner}** [`{rule_id}`] {msg}")
+              if len(flagged) > 20:
+                  lines.append(f"_… et {len(flagged)-20} autre(s). Voir l'onglet Security du repo._")
+
+          lines.append("")
+          sha = os.environ.get("SHA", "")[:7]
+          lines.append(f"_Commit: `{sha}` • Mis à jour automatiquement à chaque scan_")
+          lines.append("<!-- security-report -->")
+
+          body = "\n".join(lines)
+          pathlib.Path(os.environ["GITHUB_OUTPUT"]).write_text(f"body<<EOF\n{body}\nEOF\n")
+          print(body)
+          PY
+
+      - name: Récupérer le numéro de PR
+        if: steps.wait.outputs.ready == 'true'
+        id: pr
+        run: |
+          # workflow_run expose les PRs associées au head_sha via l'API.
+          pr_number=$(gh api "repos/$REPO/commits/$SHA/pulls" \
+                       --jq '.[0].number' 2>/dev/null || echo "")
+          echo "number=${pr_number:-}" >> "$GITHUB_OUTPUT"
+
+      - name: Publier le commentaire sur la PR
+        if: steps.wait.outputs.ready == 'true' && steps.pr.outputs.number != ''
+        env:
+          BODY: ${{ steps.gen.outputs.body }}
+        run: |
+          set -eu
+          PR="${{ steps.pr.outputs.number }}"
+          # Recherche d'un commentaire existant via le marker.
+          CID=$(gh api "repos/$REPO/issues/$PR/comments" \
+                --jq ".[] | select(.body | contains(\"<!-- security-report -->\")) | .id" | head -1)
+          if [ -n "$CID" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$CID" -f body="$BODY" >/dev/null
+            echo "Commentaire mis à jour ($CID)."
+          else
+            gh api -X POST "repos/$REPO/issues/$PR/comments" -f body="$BODY" >/dev/null
+            echo "Commentaire créé."
+          fi
+
+      - name: Écrire le résumé dans le run (fallback hors PR)
+        if: steps.wait.outputs.ready == 'true' && steps.pr.outputs.number == ''
+        env:
+          BODY: ${{ steps.gen.outputs.body }}
+        run: printf '%s\n' "$BODY" >> "$GITHUB_STEP_SUMMARY"
