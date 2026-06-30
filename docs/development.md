@@ -264,6 +264,22 @@ pnpm database:studio
 
 Le workspace database n'a pas encore de commande de test dédiée.
 
+## Intégration continue
+
+Le workflow `.github/workflows/ci.yml` s'exécute sur les pull requests vers `main`, les pushes sur
+`main`, les merge queues et les déclenchements manuels. Il lance trois contrôles en parallèle :
+
+- `Quality` : Biome, Knip, vérification TypeScript et validation du schéma Prisma ;
+- `Tests` : tests de tous les workspaces qui exposent une commande `test` ;
+- `Build` : construction de tous les workspaces.
+
+Chaque job utilise la version Node.js de `.nvmrc`, la version pnpm déclarée dans `package.json` et
+installe les dépendances avec `pnpm install --frozen-lockfile`. Le workflow dispose uniquement d'un
+accès en lecture au dépôt et ne reçoit aucun secret applicatif.
+
+Pour empêcher la fusion d'une pull request en échec, configurer le ruleset de la branche `main`
+dans GitHub et rendre obligatoires les checks `Quality`, `Tests` et `Build`.
+
 ## Base de données locale
 
 Lancer PostgreSQL puis créer la migration correspondant à une modification du schéma :
@@ -326,10 +342,4 @@ Lancer tous les tests :
 
 ```bash
 pnpm test
-```
-
-Vérifier les types TypeScript :
-
-```bash
-pnpm typecheck
 ```
