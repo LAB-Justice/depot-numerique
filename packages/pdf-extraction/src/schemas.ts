@@ -18,6 +18,11 @@ const validationIssueCodeSchema = z.enum([
   'MISSING_SERVICE',
   'MISSING_REQUEST_NUMBER',
   'MISSING_RECIPIENT',
+  'MISSING_RECIPIENT_NAME',
+  'MISSING_RECIPIENT_ADDRESS',
+  'MISSING_RECIPIENT_POSTAL_CODE',
+  'MISSING_RECIPIENT_CITY',
+  'RECIPIENT_ADDRESS_BLOCK_NAME_MISMATCH',
 ]);
 
 const validationIssueSchema = z.object({
@@ -57,6 +62,10 @@ const confidenceSchema = z.object({
   dates: z.number().min(0).max(1).optional(),
 });
 
+const completenessSchema = z.object({
+  recipient: z.number().min(0).max(1),
+});
+
 const pageTextSchema = z.object({
   pageNumber: z.number().int().positive(),
   text: z.string(),
@@ -92,6 +101,7 @@ export const pdfExtractionResultSchema = z.object({
       addressComplement: extractedFieldSchema(z.array(z.string())).optional(),
       postalCode: extractedFieldSchema(z.string()).optional(),
       city: extractedFieldSchema(z.string()).optional(),
+      addressBlockName: extractedFieldSchema(z.string()).optional(),
     })
     .optional(),
   sender: z
@@ -108,6 +118,7 @@ export const pdfExtractionResultSchema = z.object({
     decisionDate: extractedFieldSchema(z.string()).optional(),
   }),
   confidence: confidenceSchema,
+  completeness: completenessSchema,
   validation: validationSchema,
   pages: z.array(pageMetricsSchema),
   rawText: z.string().optional(),

@@ -117,6 +117,7 @@ export function extractRecipient(firstPage: PdfPageText): ExtractedRecipient | u
   const postalMatch = postalLine?.match(POSTAL_CITY_PATTERN);
   const addressLines = recipientLines.slice(nameMatch ? 1 : 0);
   const addressParts = extractAddressParts(addressLines, firstPage.pageNumber);
+  const addressBlockName = findAddressBlockName(addressLines, firstPage.pageNumber);
 
   const recipient: ExtractedRecipient = {
     addressLines: field(
@@ -172,6 +173,7 @@ export function extractRecipient(firstPage: PdfPageText): ExtractedRecipient | u
       0.9,
     );
   }
+  if (addressBlockName) recipient.addressBlockName = addressBlockName;
 
   return recipient;
 }
@@ -409,6 +411,95 @@ function findOrganization(lines: string[], pageNumber: number): ExtractedField<s
   );
   if (!line || /^\d/u.test(line)) return undefined;
   return field(line, pageNumber, line, 'HEURISTIC', 0.6);
+}
+
+/**
+ * Détecte la première ligne du bloc postal lorsqu'elle porte elle-même un nom
+ * (cas des notifications de décision : personne concernée ≠ destinataire postal).
+ * On ne considère que les lignes d'adresse (hors nom principal) qui ressemblent
+ * à une civilité + nom, ou à un nom d'organisme / personne.
+ */
+function findAddressBlockName(
+  addressLines: string[],
+  pageNumber: number,
+): ExtractedField<string> | undefined {
+  const firstAddressLine = addressLines[0];
+  if (!firstAddressLine) return undefined;
+  // Ligne commençant par une civilité : c'est typiquement le représentant / mandataire.
+  const civilityMatch = firstAddressLine.match(
+    /^(?<name>(?:Madame|Monsieur|Mademoiselle|Ma(?:î|i)tre|Me)\b.+)$/iu,
+  );
+  if (civilityMatch?.groups?.name) {
+    return field(civilityMatch.groups.name.trim(), pageNumber, firstAddressLine, 'LAYOUT', 0.8);
+  }
+  // Sinon, une lignealphabétique qui n'est ni une rue ni un code postal.
+  if (
+    !STREET_LINE_PATTERN.test(firstAddressLine) &&
+    !POSTAL_CITY_PATTERN.test(firstAddressLine) &&
+    !/^\d/u.test(firstAddressLine) &&
+    /^[A-ZÀ-Ÿa-zà-ÿ' .-]+$/u.test(firstAddressLine)
+  ) {
+    return field(firstAddressLine.trim(), pageNumber, firstAddressLine, 'HEURISTIC', 0.5);
+  }
+  return undefined;
+}
+
+/**
+ * Score de complétude du destinataire : fraction des quatre blocs attendus
+ * (nom/organisme, adresse, code postal, ville) réellement présents.
+ */
+export function recipientCompleteness(recipient: ExtractedRecipient | undefined): number {
+  if (!recipient) return 0;
+  const hasName = Boolean(recipient.fullName ?? recipient.organization);
+  const hasAddress = recipient.addressLines.value.length > 0;
+  const hasPostalCode = Boolean(recipient.postalCode);
+  const hasCity = Boolean(recipient.city);
+  const present = [hasName, hasAddress, hasPostalCode, hasCity].filter(Boolean).length;
+  return present / 4;
+}
+
+/**
+ * Issues de validation liées à un destinataire partiellement extrait.
+ * Ne couvre pas le cas "destinataire totalement absent" (MISSING_RECIPIENT).
+ */
+export function recipientIssues(recipient: ExtractedRecipient | undefined): ValidationIssue[] {
+  if (!recipient) return [];
+  const issues: ValidationIssue[] = [];
+  const hasName = Boolean(recipient.fullName ?? recipient.organization);
+  const hasAddress = recipient.addressLines.value.length > 0;
+  if (!hasName) issues.push(missingIssue('MISSING_RECIPIENT_NAME', 'Nom du destinataire'));
+  if (!hasAddress)
+    issues.push(missingIssue('MISSING_RECIPIENT_ADDRESS', 'Adresse du destinataire'));
+  if (!recipient.postalCode) {
+    issues.push(missingIssue('MISSING_RECIPIENT_POSTAL_CODE', 'Code postal du destinataire'));
+  }
+  if (!recipient.city) issues.push(missingIssue('MISSING_RECIPIENT_CITY', 'Ville du destinataire'));
+
+  if (
+    recipient.addressBlockName &&
+    recipient.fullName &&
+    !sameName(recipient.addressBlockName.value, recipient.fullName.value)
+  ) {
+    issues.push({
+      code: 'RECIPIENT_ADDRESS_BLOCK_NAME_MISMATCH',
+      message:
+        'Le nom du bloc postal diffère du nom principal (personne concernée ≠ destinataire postal ?).',
+      severity: 'warning',
+    });
+  }
+
+  return issues;
+}
+
+function sameName(a: string, b: string): boolean {
+  const norm = (value: string) =>
+    value
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .replace(/^(?:Madame|Monsieur|Mademoiselle|Ma(?:î|i)tre|Me)\s+/iu, '')
+      .trim()
+      .toLowerCase();
+  return norm(a) === norm(b);
 }
 
 function matchField(

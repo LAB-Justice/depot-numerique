@@ -14,7 +14,12 @@ export type ValidationIssueCode =
   | 'MISSING_JURISDICTION'
   | 'MISSING_SERVICE'
   | 'MISSING_REQUEST_NUMBER'
-  | 'MISSING_RECIPIENT';
+  | 'MISSING_RECIPIENT'
+  | 'MISSING_RECIPIENT_NAME'
+  | 'MISSING_RECIPIENT_ADDRESS'
+  | 'MISSING_RECIPIENT_POSTAL_CODE'
+  | 'MISSING_RECIPIENT_CITY'
+  | 'RECIPIENT_ADDRESS_BLOCK_NAME_MISMATCH';
 
 export interface ExtractionOptions {
   minPageOneCharacters?: number;
@@ -44,6 +49,7 @@ export interface ExtractedRecipient {
   addressComplement?: ExtractedField<string[]>;
   postalCode?: ExtractedField<string>;
   city?: ExtractedField<string>;
+  addressBlockName?: ExtractedField<string>;
 }
 
 export interface ExtractedSender {
@@ -87,6 +93,11 @@ export interface ExtractionConfidence {
   dates?: number;
 }
 
+export interface ExtractionCompleteness {
+  /** 0..1 — fraction of {name, address, postalCode, city} present. */
+  recipient: number;
+}
+
 export interface PageText {
   pageNumber: number;
   text: string;
@@ -118,6 +129,7 @@ export interface PdfExtractionResult {
   sender?: ExtractedSender;
   dates: ExtractedDates;
   confidence: ExtractionConfidence;
+  completeness: ExtractionCompleteness;
   validation: ExtractionValidation;
   pages: PageMetrics[];
   rawText?: string;

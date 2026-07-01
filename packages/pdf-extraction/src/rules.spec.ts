@@ -9,8 +9,17 @@ import {
   extractRequestNumber,
   extractService,
   missingIssue,
+  recipientCompleteness,
+  recipientIssues,
 } from './rules.js';
-import type { PdfPageText, PdfTextExtraction, PdfTextItem, ValidationIssue } from './types.js';
+import type {
+  ExtractedField,
+  ExtractedRecipient,
+  PdfPageText,
+  PdfTextExtraction,
+  PdfTextItem,
+  ValidationIssue,
+} from './types.js';
 
 function pageFromLines(lines: Array<{ text: string; x: number; y: number }>): PdfPageText {
   const pageNumber = 1;
@@ -79,8 +88,8 @@ describe('classifyDocument', () => {
 
 describe('extractRequestNumber', () => {
   it('extracts and uppercases the request number', () => {
-    const result = extractRequestNumber('Numéro de la demande : c-59350-2025-012305');
-    expect(result?.value).toBe('C-59350-2025-012305');
+    const result = extractRequestNumber('Numéro de la demande : c-00000-0000-000001');
+    expect(result?.value).toBe('C-00000-0000-000001');
     expect(result?.method).toBe('REGEX');
     expect(result?.confidence).toBeCloseTo(0.99);
   });
@@ -115,9 +124,9 @@ describe('layout extraction (jurisdiction / service / recipient)', () => {
     { text: 'Avenue du Peuple Belge', x: 70, y: 770 },
     { text: 'BP 729', x: 70, y: 755 },
     { text: '59034 Lille', x: 70, y: 740 },
-    { text: 'Madame Marie Dupont', x: 320, y: 600 },
-    { text: '10 rue de la Paix', x: 320, y: 585 },
-    { text: '59000 LILLE', x: 320, y: 570 },
+    { text: 'Madame Jeanne Doe', x: 320, y: 600 },
+    { text: '00 rue des Exemples', x: 320, y: 585 },
+    { text: '00000 EXEMPLEVILLE', x: 320, y: 570 },
   ]);
 
   it('extracts the jurisdiction', () => {
@@ -131,13 +140,13 @@ describe('layout extraction (jurisdiction / service / recipient)', () => {
   it('extracts the recipient with multi-line address', () => {
     const recipient = extractRecipient(page);
     expect(recipient?.civility?.value).toBe('Madame');
-    expect(recipient?.fullName?.value).toBe('Marie Dupont');
-    expect(recipient?.streetNumber?.value).toBe('10');
+    expect(recipient?.fullName?.value).toBe('Jeanne Doe');
+    expect(recipient?.streetNumber?.value).toBe('00');
     expect(recipient?.streetType?.value).toBe('rue');
-    expect(recipient?.streetName?.value).toBe('de la Paix');
-    expect(recipient?.postalCode?.value).toBe('59000');
-    expect(recipient?.city?.value).toBe('LILLE');
-    expect(recipient?.addressLines.value).toEqual(['10 rue de la Paix', '59000 LILLE']);
+    expect(recipient?.streetName?.value).toBe('des Exemples');
+    expect(recipient?.postalCode?.value).toBe('00000');
+    expect(recipient?.city?.value).toBe('EXEMPLEVILLE');
+    expect(recipient?.addressLines.value).toEqual(['00 rue des Exemples', '00000 EXEMPLEVILLE']);
   });
 
   it('returns undefined when no jurisdiction matches', () => {
@@ -190,5 +199,121 @@ describe('missingIssue', () => {
       message: 'Destinataire non extrait.',
       severity: 'warning',
     });
+  });
+});
+
+function recipientField(
+  overrides: {
+    addressLines?: ExtractedField<string[]> | undefined;
+    fullName?: ExtractedField<string> | undefined;
+    organization?: ExtractedField<string> | undefined;
+    postalCode?: ExtractedField<string> | undefined;
+    city?: ExtractedField<string> | undefined;
+    addressBlockName?: ExtractedField<string> | undefined;
+  } = {},
+): ExtractedRecipient {
+  const base: Record<string, unknown> = {
+    addressLines: field(['00 rue des Exemples', '00000 EXEMPLEVILLE']),
+    fullName: field1('Jeanne Doe'),
+    postalCode: field1('00000'),
+    city: field1('EXEMPLEVILLE'),
+  };
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value === undefined) {
+      delete base[key];
+    } else {
+      base[key] = value;
+    }
+  }
+  return base as unknown as ExtractedRecipient;
+}
+
+function field1(value: string): ExtractedField<string> {
+  return { value, confidence: 0.9, sourcePage: 1, sourceText: value, method: 'LAYOUT' };
+}
+function field(value: string[]): ExtractedField<string[]> {
+  return { value, confidence: 0.85, sourcePage: 1, sourceText: value.join('\n'), method: 'LAYOUT' };
+}
+
+describe('recipientCompleteness', () => {
+  it('returns 0 for an absent recipient', () => {
+    expect(recipientCompleteness(undefined)).toBe(0);
+  });
+
+  it('returns 1 for a fully complete recipient', () => {
+    expect(recipientCompleteness(recipientField())).toBe(1);
+  });
+
+  it('returns 0.75 when the postal code is missing', () => {
+    expect(recipientCompleteness(recipientField({ postalCode: undefined }))).toBeCloseTo(0.75);
+  });
+
+  it('returns 0.5 when both postal code and city are missing', () => {
+    expect(
+      recipientCompleteness(recipientField({ postalCode: undefined, city: undefined })),
+    ).toBeCloseTo(0.5);
+  });
+
+  it('counts an organization when there is no fullName', () => {
+    const recipient = recipientField({
+      fullName: undefined,
+      organization: field1('CABINET EXEMPLE'),
+    });
+    expect(recipientCompleteness(recipient)).toBe(1);
+  });
+});
+
+describe('recipientIssues', () => {
+  it('returns no issue for a complete recipient', () => {
+    expect(recipientIssues(recipientField())).toEqual([]);
+  });
+
+  it('emits MISSING_RECIPIENT_POSTAL_CODE when postal code is missing', () => {
+    const issues = recipientIssues(recipientField({ postalCode: undefined }));
+    expect(issues.map((issue) => issue.code)).toContain('MISSING_RECIPIENT_POSTAL_CODE');
+  });
+
+  it('emits MISSING_RECIPIENT_CITY when the city is missing', () => {
+    const issues = recipientIssues(recipientField({ city: undefined }));
+    expect(issues.map((issue) => issue.code)).toContain('MISSING_RECIPIENT_CITY');
+  });
+
+  it('emits MISSING_RECIPIENT_ADDRESS when addressLines is empty', () => {
+    const issues = recipientIssues(recipientField({ addressLines: field([]) }));
+    expect(issues.map((issue) => issue.code)).toContain('MISSING_RECIPIENT_ADDRESS');
+  });
+
+  it('emits MISSING_RECIPIENT_NAME when neither fullName nor organization', () => {
+    const issues = recipientIssues(
+      recipientField({ fullName: undefined, organization: undefined }),
+    );
+    expect(issues.map((issue) => issue.code)).toContain('MISSING_RECIPIENT_NAME');
+  });
+
+  it('emits RECIPIENT_ADDRESS_BLOCK_NAME_MISMATCH when addressBlockName differs', () => {
+    const recipient = recipientField({
+      addressBlockName: field1('Madame Marie Durand'),
+    });
+    const codes = recipientIssues(recipient).map((issue) => issue.code);
+    expect(codes).toContain('RECIPIENT_ADDRESS_BLOCK_NAME_MISMATCH');
+  });
+
+  it('does not emit mismatch when addressBlockName matches the main name', () => {
+    const recipient = recipientField({ addressBlockName: field1('Madame Jeanne Doe') });
+    const codes = recipientIssues(recipient).map((issue) => issue.code);
+    expect(codes).not.toContain('RECIPIENT_ADDRESS_BLOCK_NAME_MISMATCH');
+  });
+});
+
+describe('extractRecipient — address block name (représentant)', () => {
+  it('exposes addressBlockName when the address starts with a different person', () => {
+    const page = pageFromLines([
+      { text: 'Monsieur Jean Martin', x: 320, y: 600 },
+      { text: 'Madame Marie Durand', x: 320, y: 585 },
+      { text: 'CABINET EXEMPLE', x: 320, y: 570 },
+      { text: '00000 EXEMPLEVILLE CEDEX', x: 320, y: 555 },
+    ]);
+    const recipient = extractRecipient(page);
+    expect(recipient?.addressBlockName?.value).toBe('Madame Marie Durand');
   });
 });

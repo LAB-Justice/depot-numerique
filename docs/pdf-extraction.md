@@ -54,7 +54,7 @@ const buffer: Buffer = fichierEntrant;
 const result = await extractPdfDocument(buffer);
 
 console.log(result.documentType); // 'REQUEST_MISSING_PARTS'
-console.log(result.requestNumber?.value); // 'C-59350-2025-012305'
+console.log(result.requestNumber?.value); // 'C-00000-0000-000001'
 console.log(result.validation.status); // 'OK' | 'PARTIAL' | 'TEXT_EXTRACTION_FAILED'
 ```
 
@@ -100,6 +100,7 @@ Le type de retour est `PdfExtractionResult`.
 | `documentTypeConfidence` | `number`              | Confiance de la classification (0..1).                 |
 | `dates`                  | `ExtractedDates`      | Dates du courrier, de la demande et de la décision.    |
 | `confidence`             | `ExtractionConfidence`| Scores globaux et par section (0..1).                  |
+| `completeness`           | `ExtractionCompleteness` | Scores de complétude par section (0..1).            |
 | `validation`             | `ExtractionValidation`| Statut, score, issues, errors, warnings.               |
 | `pages`                  | `PageMetrics[]`       | Métriques par page (caractères, mots, page vide).      |
 
@@ -111,8 +112,8 @@ Présents uniquement si l'extraction a réussi pour le champ concerné :
 | --------------- | ----------------------- | -------------------------------------------- |
 | `jurisdiction`  | `ExtractedField<string>`| Juridiction (ex. Tribunal judiciaire).       |
 | `service`       | `ExtractedField<string>`| Service émetteur (ex. Bureau d'aide juridictionnelle). |
-| `requestNumber` | `ExtractedField<string>`| Numéro de demande (`C-59350-2025-012305`).   |
-| `recipient`     | `ExtractedRecipient`    | Destinataire (civilité, nom, adresse).       |
+| `requestNumber` | `ExtractedField<string>`| Numéro de demande (`C-00000-0000-000001`).  |
+| `recipient`     | `ExtractedRecipient`    | Destinataire (civilité, nom, adresse, et `addressBlockName` quand le bloc postal porte un nom distinct).       |
 | `sender`        | `ExtractedSender`       | Expéditeur (juridiction, service, adresse, téléphone). |
 
 ### Champs enrichis optionnels
@@ -154,6 +155,27 @@ interface ExtractionConfidence {
 
 Le calcul V1 de `overall` reste volontairement simple : moyenne des sections présentes, divisée par deux si `documentType === 'UNKNOWN'`, pénalisée par les erreurs (`-0,15`) et les avertissements (`-0,05`). L'objectif n'est pas une confiance parfaite, mais un signal exploitable pour décider d'engager un *reviewer* IA.
 
+### Complétude (`completeness`)
+
+`ExtractionCompleteness` mesure la proportion de blocs attendus réellement présents, indépendamment de la confiance d'extraction :
+
+```ts
+interface ExtractionCompleteness {
+  recipient: number; // 0..1
+}
+```
+
+`completeness.recipient` est la fraction des quatre blocs destinataire présents :
+
+| Bloc                          | Compté si                                              |
+| ----------------------------- | ------------------------------------------------------ |
+| Nom / organisme               | `recipient.fullName` **ou** `recipient.organization`.  |
+| Adresse                       | `recipient.addressLines` non vide.                     |
+| Code postal                   | `recipient.postalCode`.                                |
+| Ville                         | `recipient.city`.                                      |
+
+Interprétation : `1` = destinataire complet, `0,5` = partiel, `0` = absent. Ce score complète `validation.status` (qui signale les blocs manquants) en donnant une mesure continue.
+
 ## Validation
 
 `ExtractionValidation` résume la qualité de l'extraction :
@@ -174,14 +196,23 @@ interface ExtractionValidation {
 
 `ValidationIssueCode` est une union typée :
 
-| Code                       | Sévérité  | Sens                                        |
-| -------------------------- | --------- | ------------------------------------------- |
-| `TEXT_EXTRACTION_FAILED`   | `error`   | Première page sans texte suffisant.         |
-| `UNKNOWN_DOCUMENT_TYPE`    | `warning` | Type de document non reconnu.               |
-| `MISSING_JURISDICTION`     | `warning` | Juridiction non extraite.                   |
-| `MISSING_SERVICE`          | `warning` | Service non extrait.                        |
-| `MISSING_REQUEST_NUMBER`   | `warning` | Numéro de demande non extrait.              |
-| `MISSING_RECIPIENT`        | `warning` | Destinataire non extrait.                   |
+| Code                                | Sévérité  | Sens                                                     |
+| ----------------------------------- | --------- | -------------------------------------------------------- |
+| `TEXT_EXTRACTION_FAILED`            | `error`   | Première page sans texte suffisant.                      |
+| `UNKNOWN_DOCUMENT_TYPE`             | `warning` | Type de document non reconnu.                            |
+| `MISSING_JURISDICTION`              | `warning` | Juridiction non extraite.                                |
+| `MISSING_SERVICE`                   | `warning` | Service non extrait.                                     |
+| `MISSING_REQUEST_NUMBER`            | `warning` | Numéro de demande non extrait (types BAJ reconnus seulement). |
+| `MISSING_RECIPIENT`                 | `warning` | Destinataire totalement absent.                          |
+| `MISSING_RECIPIENT_NAME`            | `warning` | Destinataire présent mais sans nom ni organisme.         |
+| `MISSING_RECIPIENT_ADDRESS`         | `warning` | Destinataire présent mais sans adresse.                  |
+| `MISSING_RECIPIENT_POSTAL_CODE`     | `warning` | Destinataire présent mais sans code postal.              |
+| `MISSING_RECIPIENT_CITY`            | `warning` | Destinataire présent mais sans ville.                    |
+| `RECIPIENT_ADDRESS_BLOCK_NAME_MISMATCH` | `warning` | Le nom du bloc postal diffère du nom principal (personne concernée ≠ destinataire postal ?). |
+
+> `MISSING_REQUEST_NUMBER` n'est émis que pour les types de documents explicitement reconnus (`REQUEST_MISSING_PARTS`, `DECISION_NOTIFICATION`, `AID_DECISION`). Les documents `UNKNOWN` (notamment BOG / PORTALIS) peuvent utiliser d'autres identifiants métier, l'absence d'un numéro `C-...` n'y est donc pas signalée. Une gestion générique des références (`primaryReference` / `primaryReferenceType`) est prévue dans une tâche ultérieure.
+>
+> Toutes les issues de destinataire incomplet sont des `warning` : un destinataire partiel fait basculer `validation.status` à `PARTIAL` (jamais `OK`).
 
 ## Types de documents
 
@@ -203,6 +234,24 @@ La V1 est déterministe et textuelle. Elle ne couvre pas :
 - l'intégration BullMQ ;
 - le stockage Prisma (les champs enrichis ne sont pas persistés) ;
 - le dépôt IMPRIMFIP.
+
+### Personne concernée vs destinataire postal
+
+Sur les notifications de décision, la première ligne du bloc postal peut porter un nom différent du destinataire principal (par exemple un représentant / mandataire) :
+
+```txt
+Monsieur Jean Martin            ← destinataire principal (recipient.fullName)
+représenté(e) par,
+Madame Marie Durand             ← adresse postale réelle
+CABINET EXEMPLE
+00000 EXEMPLEVILLE CEDEX
+```
+
+La V1 expose ce second nom via le champ non cassant `recipient.addressBlockName?: ExtractedField<string>` et émet une issue `RECIPIENT_ADDRESS_BLOCK_NAME_MISMATCH` lorsque ce nom diffère de `recipient.fullName`. Le package ne cherche pas à trancher lequel est le « bon » destinataire postal : ce signal est destiné à une revue humaine ou future IA.
+
+### Prudence autour de `caseReference`
+
+Une référence d'enregistrement au greffe générique (`caseReference`, distincte du numéro de demande BAJ) n'est **pas** extraite à ce jour. Aucun champ `caseReference` n'existe dans le schéma actuel, et aucune extraction de référence métier autre que `requestNumber` n'est effectuée. La gestion d'une référence générique (formats `25/08325`, `2025-00069169`, `M20/0035`, etc.) devra faire l'objet d'une tâche séparée, idéalement via un champ typé `primaryReference` / `primaryReferenceType` distinguant BAJ, PORTALIS et BOG.
 
 ### Vers un *reviewer* IA local
 

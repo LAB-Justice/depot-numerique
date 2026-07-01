@@ -77,12 +77,12 @@ describe('extractPdfDocument — standard result', () => {
       { text: 'Avenue du Peuple Belge', x: 70, y: 770 },
       { text: 'BP 729', x: 70, y: 755 },
       { text: '59034 Lille', x: 70, y: 740 },
-      { text: 'Madame Marie Dupont', x: 320, y: 600 },
-      { text: '10 rue de la Paix', x: 320, y: 585 },
-      { text: '59000 LILLE', x: 320, y: 570 },
+      { text: 'Madame Jeanne Doe', x: 320, y: 600 },
+      { text: '00 rue des Exemples', x: 320, y: 585 },
+      { text: '00000 EXEMPLEVILLE', x: 320, y: 570 },
       { text: 'DEMANDE DE PIÈCES OU INFORMATIONS COMPLÉMENTAIRES', x: 70, y: 500 },
       { text: 'Lille, le 15 janvier 2025', x: 70, y: 480 },
-      { text: 'Numéro de la demande : c-59350-2025-012305', x: 70, y: 460 },
+      { text: 'Numéro de la demande : c-00000-0000-000001', x: 70, y: 460 },
     ]);
     vi.mocked(extractPdfText).mockResolvedValue(buildExtraction([page]));
 
@@ -92,9 +92,9 @@ describe('extractPdfDocument — standard result', () => {
     expect(result.documentTypeConfidence).toBeCloseTo(0.9);
     expect(result.jurisdiction?.value).toBe('Tribunal judiciaire de Lille');
     expect(result.service?.value).toBe("Bureau d'aide juridictionnelle");
-    expect(result.requestNumber?.value).toBe('C-59350-2025-012305');
-    expect(result.recipient?.fullName?.value).toBe('Marie Dupont');
-    expect(result.recipient?.postalCode?.value).toBe('59000');
+    expect(result.requestNumber?.value).toBe('C-00000-0000-000001');
+    expect(result.recipient?.fullName?.value).toBe('Jeanne Doe');
+    expect(result.recipient?.postalCode?.value).toBe('00000');
     expect(result.dates.letterDate?.value).toBe('15 janvier 2025');
     expect(result.validation.status).toBe('OK');
     expect(result.confidence.overall).toBeGreaterThan(0);
@@ -131,12 +131,12 @@ describe('extractPdfDocument — enriched result', () => {
   const fullPage = buildPage([
     { text: 'Tribunal judiciaire de Lille', x: 70, y: 800 },
     { text: "Bureau d'aide juridictionnelle", x: 70, y: 785 },
-    { text: 'Madame Marie Dupont', x: 320, y: 600 },
-    { text: '10 rue de la Paix', x: 320, y: 585 },
-    { text: '59000 LILLE', x: 320, y: 570 },
+    { text: 'Madame Jeanne Doe', x: 320, y: 600 },
+    { text: '00 rue des Exemples', x: 320, y: 585 },
+    { text: '00000 EXEMPLEVILLE', x: 320, y: 570 },
     { text: 'DEMANDE DE PIÈCES OU INFORMATIONS COMPLÉMENTAIRES', x: 70, y: 500 },
     { text: 'Ligne de remplissage pour dépasser le seuil minimal de mots', x: 70, y: 480 },
-    { text: 'Numéro de la demande : c-59350-2025-012305', x: 70, y: 460 },
+    { text: 'Numéro de la demande : c-00000-0000-000002', x: 70, y: 460 },
   ]);
 
   beforeEach(() => {
@@ -174,5 +174,78 @@ describe('extractPdfDocument — enriched result', () => {
     expect(result.rawText).toBe(fullPage.text);
     expect(result.pageTexts).toBeUndefined();
     expect(result.layoutBlocks).toBeUndefined();
+  });
+});
+
+describe('extractPdfDocument — recipient completeness & validation', () => {
+  it('exposes completeness.recipient = 1 for a fully complete recipient', async () => {
+    const page = buildPage([
+      { text: 'Tribunal judiciaire de Lille', x: 70, y: 800 },
+      { text: "Bureau d'aide juridictionnelle", x: 70, y: 785 },
+      { text: 'Madame Jeanne Doe', x: 320, y: 600 },
+      { text: '00 rue des Exemples', x: 320, y: 585 },
+      { text: '00000 EXEMPLEVILLE', x: 320, y: 570 },
+      { text: 'DEMANDE DE PIÈCES OU INFORMATIONS COMPLÉMENTAIRES', x: 70, y: 500 },
+      { text: 'Numéro de la demande : c-00000-0000-000003', x: 70, y: 460 },
+    ]);
+    vi.mocked(extractPdfText).mockResolvedValue(buildExtraction([page]));
+
+    const result = await extractPdfDocument(new Uint8Array());
+    expect(result.completeness.recipient).toBe(1);
+  });
+
+  it('flags PARTIAL with MISSING_RECIPIENT_POSTAL_CODE when the postal line is missing', async () => {
+    const page = buildPage([
+      { text: 'Tribunal judiciaire de Lille', x: 70, y: 800 },
+      { text: "Bureau d'aide juridictionnelle", x: 70, y: 785 },
+      { text: 'Madame Jeanne Doe', x: 320, y: 600 },
+      { text: '00 rue des Exemples', x: 320, y: 585 },
+      { text: 'DEMANDE DE PIÈCES OU INFORMATIONS COMPLÉMENTAIRES', x: 70, y: 500 },
+      { text: 'Numéro de la demande : c-00000-0000-000003', x: 70, y: 460 },
+    ]);
+    vi.mocked(extractPdfText).mockResolvedValue(buildExtraction([page]));
+
+    const result = await extractPdfDocument(new Uint8Array());
+    expect(result.validation.status).toBe('PARTIAL');
+    expect(result.completeness.recipient).toBeLessThan(1);
+    expect(
+      result.validation.issues.some((issue) => issue.code === 'MISSING_RECIPIENT_POSTAL_CODE'),
+    ).toBe(true);
+    expect(result.validation.issues.some((issue) => issue.code === 'MISSING_RECIPIENT_CITY')).toBe(
+      true,
+    );
+  });
+
+  it('does not flag MISSING_REQUEST_NUMBER for UNKNOWN documents (BOG/PORTALIS)', async () => {
+    const longLine = 'Mot '.repeat(30);
+    const page = buildPage([{ text: longLine.trim(), x: 70, y: 800 }]);
+    vi.mocked(extractPdfText).mockResolvedValue(buildExtraction([page]));
+
+    const result = await extractPdfDocument(new Uint8Array());
+    expect(result.documentType).toBe('UNKNOWN');
+    expect(result.validation.issues.some((issue) => issue.code === 'MISSING_REQUEST_NUMBER')).toBe(
+      false,
+    );
+  });
+
+  it('flags RECIPIENT_ADDRESS_BLOCK_NAME_MISMATCH when the postal block name differs', async () => {
+    const page = buildPage([
+      { text: 'Tribunal judiciaire de Lille', x: 70, y: 800 },
+      { text: "Bureau d'aide juridictionnelle", x: 70, y: 785 },
+      { text: 'Monsieur Jean Martin', x: 320, y: 600 },
+      { text: 'Madame Marie Durand', x: 320, y: 585 },
+      { text: 'CABINET EXEMPLE', x: 320, y: 570 },
+      { text: '00000 EXEMPLEVILLE CEDEX', x: 320, y: 555 },
+      { text: 'NOTIFICATION D’UNE DÉCISION', x: 70, y: 500 },
+    ]);
+    vi.mocked(extractPdfText).mockResolvedValue(buildExtraction([page]));
+
+    const result = await extractPdfDocument(new Uint8Array());
+    expect(result.recipient?.addressBlockName?.value).toBe('Madame Marie Durand');
+    expect(
+      result.validation.issues.some(
+        (issue) => issue.code === 'RECIPIENT_ADDRESS_BLOCK_NAME_MISMATCH',
+      ),
+    ).toBe(true);
   });
 });

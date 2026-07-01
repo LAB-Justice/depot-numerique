@@ -9,6 +9,8 @@ import {
   extractSender,
   extractService,
   missingIssue,
+  recipientCompleteness,
+  recipientIssues,
 } from './rules.js';
 import { pdfExtractionResultSchema } from './schemas.js';
 import type {
@@ -17,6 +19,7 @@ import type {
   ExtractedField,
   ExtractedRecipient,
   ExtractedSender,
+  ExtractionCompleteness,
   ExtractionConfidence,
   ExtractionOptions,
   ExtractionValidation,
@@ -35,6 +38,7 @@ export type {
   ExtractedField,
   ExtractedRecipient,
   ExtractedSender,
+  ExtractionCompleteness,
   ExtractionConfidence,
   ExtractionMethod,
   ExtractionOptions,
@@ -78,6 +82,7 @@ export async function extractPdfDocument(
       confidence: {
         overall: 0,
       },
+      completeness: { recipient: 0 },
       validation: buildValidation(extraction, issues),
       pages: extraction.metrics,
     }) as PdfExtractionResult;
@@ -100,17 +105,30 @@ export async function extractPdfDocument(
   }
   if (!jurisdiction) issues.push(missingIssue('MISSING_JURISDICTION', 'Juridiction'));
   if (!service) issues.push(missingIssue('MISSING_SERVICE', 'Service'));
-  if (!requestNumber) issues.push(missingIssue('MISSING_REQUEST_NUMBER', 'Numéro de demande'));
-  if (!recipient) issues.push(missingIssue('MISSING_RECIPIENT', 'Destinataire'));
+  // Le numéro de demande au format C-... est spécifique aux courriers BAJ reconnus.
+  // Les documents BOG / PORTALIS (classés UNKNOWN) peuvent utiliser d'autres identifiants :
+  // on ne signale son absence que pour les types de documents explicitement reconnus.
+  if (!requestNumber && classification.documentType !== 'UNKNOWN') {
+    issues.push(missingIssue('MISSING_REQUEST_NUMBER', 'Numéro de demande'));
+  }
+  if (!recipient) {
+    issues.push(missingIssue('MISSING_RECIPIENT', 'Destinataire'));
+  } else {
+    issues.push(...recipientIssues(recipient));
+  }
 
   const validation = buildValidation(extraction, issues);
   const confidence = buildConfidence(classification, { recipient, sender, dates, validation });
+  const completeness: ExtractionCompleteness = {
+    recipient: recipientCompleteness(recipient),
+  };
 
   const result: PdfExtractionResult = {
     documentType: classification.documentType,
     documentTypeConfidence: classification.confidence,
     dates,
     confidence,
+    completeness,
     validation,
     pages: extraction.metrics,
   };
