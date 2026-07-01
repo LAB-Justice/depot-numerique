@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+dist/
 
 # Alternative package manager lockfiles
 /package-lock.json

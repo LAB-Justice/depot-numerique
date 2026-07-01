@@ -61,6 +61,11 @@
       "trailingCommas": "none"
     }
   },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
   "html": {
     "formatter": {
       "enabled": true,
@@ -73,6 +78,16 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["apps/web/src/**/*.html"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useValidAnchor": "off"
+          }
+        }
+      }
+    },
     {
       "includes": ["apps/api/src/**/*.ts", "apps/api/test/**/*.ts"],
       "linter": {

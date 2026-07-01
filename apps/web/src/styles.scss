@@ -1,1 +1,56 @@
-/* You can add global styles to this file, and also import other style files */
+@import "tailwindcss";
+
+@source "./app/**/*.ts";
+@source "./features/**/*.ts";
+@source "./shared/**/*.ts";
+@source "./core/**/*.ts";
+
+/*
+ * Palette alignée sur la charte de l'État (DSFR) :
+ * Bleu France #000091, Rouge Marianne #E1000F, textes et neutres officiels.
+ * Police Marianne en pile avec repli système.
+ */
+@theme {
+  --font-sans:
+    "Marianne",
+    arial,
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+
+  --color-bf-925: #f5f5fe;
+  --color-bf-950: #ececfe;
+  --color-bf-975: #e3e3fd;
+  --color-bf: #000091;
+  --color-bf-hover: #1212ff;
+
+  --color-rm: #e1000f;
+  --color-rm-hover: #c9191e;
+
+  --color-tx: #161616;
+  --color-tx-muted: #3a3a3a;
+  --color-grey: #dddddd;
+  --color-grey-light: #f6f6f6;
+
+  --color-success: #18753c;
+  --color-success-bg: #b8fec9;
+  --color-warning: #b34000;
+  --color-warning-bg: #ffe8d7;
+  --color-error: #ce0500;
+  --color-error-bg: #ffe9e9;
+  --color-info: #0063cb;
+  --color-info-bg: #e8edff;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100dvh;
+  color: var(--color-tx);
+  background: #f6f6f6;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
