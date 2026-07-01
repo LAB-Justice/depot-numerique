@@ -1,0 +1,99 @@
+<a
+  routerLink="/history"
+  class="mb-4 inline-flex items-center gap-1 text-sm font-medium text-bf hover:text-bf-hover"
+>
+  <svg
+    class="size-4"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    aria-hidden="true"
+  >
+    <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 19.5-7.5-7.5 7.5-7.5" />
+  </svg>
+  Retour à l'historique
+</a>
+@if (doc.isLoading()) {
+<p class="py-12 text-center text-sm text-tx-muted">Chargement…</p>
+} @else if (doc.value(); as item) {
+<section class="mb-8">
+  <div class="flex flex-wrap items-center gap-3">
+    <span
+      [class]="item.mailType === 'LR'
+          ? 'rounded px-2 py-0.5 text-xs font-bold text-white bg-rm'
+          : 'rounded px-2 py-0.5 text-xs font-bold text-white bg-bf'"
+      >{{ item.mailType }}</span
+    >
+    <h1 class="text-xl font-bold text-tx">{{ item.filename }}</h1>
+    <app-status-badge [status]="item.status" />
+  </div>
+  <p class="mt-1 text-xs text-tx-muted">
+    {{ mailLabel(item.mailType) }}
+    · {{ formatSize(item.sizeBytes) }} · déposé le {{ formatDate(item.createdAt) }}
+  </p>
+</section>
+
+<div class="grid gap-6 lg:grid-cols-2">
+  <!-- Métadonnées -->
+  <section class="rounded-lg border border-grey bg-white p-5">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-tx-muted">Informations</h2>
+    <dl class="space-y-2 text-sm">
+      <div class="flex justify-between gap-4">
+        <dt class="text-tx-muted">Identifiant</dt>
+        <dd class="font-mono text-xs text-tx">{{ item.id }}</dd>
+      </div>
+      <div class="flex justify-between gap-4">
+        <dt class="text-tx-muted">Type de courrier</dt>
+        <dd class="font-medium text-tx">{{ mailLabel(item.mailType) }}</dd>
+      </div>
+      <div class="flex justify-between gap-4">
+        <dt class="text-tx-muted">Référence déposant</dt>
+        <dd class="font-medium text-tx">{{ item.depositorRef }}</dd>
+      </div>
+      <div class="flex justify-between gap-4">
+        <dt class="text-tx-muted">Juridiction</dt>
+        <dd class="font-medium text-tx">{{ item.jurisdictionCode }}</dd>
+      </div>
+      <div class="flex justify-between gap-4">
+        <dt class="text-tx-muted">Service</dt>
+        <dd class="font-medium text-tx">{{ item.serviceCode }}</dd>
+      </div>
+      <div class="flex justify-between gap-4">
+        <dt class="text-tx-muted">Mis à jour</dt>
+        <dd class="font-medium text-tx">{{ formatDate(item.updatedAt) }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <!-- Cycle de vie -->
+  <section class="rounded-lg border border-grey bg-white p-5">
+    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-tx-muted">Cycle de vie</h2>
+    <ol class="relative space-y-5 border-l border-grey pl-5">
+      @for (stage of stages(); track stage.title) { @let state = stageState(stage, item.status);
+      <li class="relative">
+        <span
+          [class]="state === 'active'
+                ? 'absolute -left-[1.6rem] flex size-3.5 items-center justify-center rounded-full bg-bf ring-4 ring-bf-975'
+                : state === 'done'
+                  ? 'absolute -left-[1.6rem] flex size-3.5 items-center justify-center rounded-full bg-success ring-4 ring-white'
+                  : 'absolute -left-[1.6rem] flex size-3.5 items-center justify-center rounded-full bg-grey ring-4 ring-white'"
+          aria-hidden="true"
+        ></span>
+        <p
+          [class]="state === 'todo' ? 'text-sm font-medium text-tx-muted' : 'text-sm font-medium text-tx'"
+        >
+          {{ stage.title }}
+        </p>
+        <p class="mt-0.5 text-xs text-tx-muted">{{ stage.description }}</p>
+      </li>
+      }
+    </ol>
+  </section>
+</div>
+} @else {
+<div class="rounded-lg border border-grey bg-white p-12 text-center">
+  <p class="text-sm font-medium text-tx">Document introuvable</p>
+  <p class="mt-1 text-sm text-tx-muted">Ce document n'existe pas ou n'est plus accessible.</p>
+</div>
+}

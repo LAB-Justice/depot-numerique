@@ -1,0 +1,30 @@
+<section class="mb-8">
+  <h1 class="text-2xl font-bold text-tx">Dépôt de documents</h1>
+  <p class="mt-1 text-sm text-tx-muted">
+    Déposez les documents générés depuis vos logiciels métier. Ils seront analysés, mis en
+    conformité si nécessaire, puis transmis à IMPRIMFIP.
+  </p>
+</section>
+
+<div class="grid gap-6 sm:grid-cols-2">
+  <div class="flex flex-col gap-3">
+    <app-dropzone mailType="LR" (filesSelected)="onFiles($event, 'LR')" />
+    @if (lastUpload().LR) {
+    <p class="rounded bg-success-bg px-3 py-2 text-xs font-medium text-success">
+      {{ lastUpload().LR }}
+    </p>
+    }
+  </div>
+
+  <div class="flex flex-col gap-3">
+    <app-dropzone mailType="LS" (filesSelected)="onFiles($event, 'LS')" />
+    @if (lastUpload().LS) {
+    <p class="rounded bg-success-bg px-3 py-2 text-xs font-medium text-success">
+      {{ lastUpload().LS }}
+    </p>
+    }
+  </div>
+</div>
+@if (busy()) {
+<p class="mt-6 text-center text-sm text-tx-muted">Traitement du fichier…</p>
+}

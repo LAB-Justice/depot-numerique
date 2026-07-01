@@ -1,0 +1,79 @@
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold text-tx">Historique des documents</h1>
+    <p class="mt-1 text-sm text-tx-muted">Suivi du cycle de vie de vos documents déposés.</p>
+  </div>
+  <button
+    type="button"
+    class="rounded border border-grey bg-white px-3 py-1.5 text-sm font-medium text-tx transition-colors hover:bg-grey-light"
+    (click)="refresh()"
+  >
+    Actualiser
+  </button>
+</div>
+
+<!-- Filtres -->
+<div class="mb-4 flex gap-1 rounded-lg bg-grey-light p-1">
+  @for (f of filters; track f) {
+  <button
+    type="button"
+    [class]="filter() === f
+        ? 'flex-1 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-bf shadow-sm'
+        : 'flex-1 rounded-md px-3 py-1.5 text-sm font-medium text-tx-muted hover:text-tx'"
+    (click)="setFilter(f)"
+  >
+    {{ f === 'ALL' ? 'Tous' : label(f) }}
+  </button>
+  }
+</div>
+
+<!-- Liste -->
+<div class="overflow-hidden rounded-lg border border-grey bg-white">
+  @if (docs.isLoading()) {
+  <p class="px-4 py-12 text-center text-sm text-tx-muted">Chargement…</p>
+  } @else if (docs.value(); as items) { @if (items.length === 0) {
+  <app-empty-state
+    title="Aucun document"
+    description="Aucun document ne correspond à ce filtre pour le moment."
+  />
+  } @else {
+  <ul class="divide-y divide-grey">
+    @for (item of items; track item.id) {
+    <li>
+      <a
+        [routerLink]="['/documents', item.id]"
+        class="flex flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-grey-light"
+      >
+        <span
+          [class]="item.mailType === 'LR'
+                  ? 'rounded px-2 py-0.5 text-xs font-bold text-white bg-rm'
+                  : 'rounded px-2 py-0.5 text-xs font-bold text-white bg-bf'"
+          >{{ item.mailType }}</span
+        >
+
+        <span class="min-w-0 flex-1 truncate text-sm font-medium text-tx">
+          {{ item.filename }}
+        </span>
+
+        <span class="hidden text-xs text-tx-muted sm:inline">{{ formatSize(item.sizeBytes) }}</span>
+
+        <app-status-badge [status]="item.status" />
+
+        <span class="hidden text-xs text-tx-muted md:inline">{{ formatDate(item.createdAt) }}</span>
+
+        <svg
+          class="size-4 text-grey"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+        </svg>
+      </a>
+    </li>
+    }
+  </ul>
+  } }
+</div>
