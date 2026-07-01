@@ -22,7 +22,7 @@
     },
     "packages/pdf-extraction": {
       "entry": ["src/index.ts", "src/**/*.spec.ts"],
-      "project": ["src/**/*.ts", "vitest.config.ts"]
+      "project": ["src/**/*.ts"]
     }
   },
   "ignoreDependencies": ["vue"]

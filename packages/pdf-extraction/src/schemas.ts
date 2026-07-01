@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
-export const documentTypeSchema = z.enum([
+const documentTypeSchema = z.enum([
   'REQUEST_MISSING_PARTS',
   'DECISION_NOTIFICATION',
   'AID_DECISION',
   'UNKNOWN',
 ]);
 
-export const extractionMethodSchema = z.enum(['REGEX', 'LAYOUT', 'HEURISTIC']);
+const extractionMethodSchema = z.enum(['REGEX', 'LAYOUT', 'HEURISTIC']);
 
 const validationStatusSchema = z.enum(['OK', 'PARTIAL', 'TEXT_EXTRACTION_FAILED']);
 
@@ -26,7 +26,7 @@ const validationIssueSchema = z.object({
   severity: z.enum(['error', 'warning']),
 });
 
-export const extractedFieldSchema = <T extends z.ZodType>(valueSchema: T) =>
+const extractedFieldSchema = <T extends z.ZodType>(valueSchema: T) =>
   z.object({
     value: valueSchema,
     confidence: z.number().min(0).max(1),
