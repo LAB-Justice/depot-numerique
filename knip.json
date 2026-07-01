@@ -9,14 +9,8 @@
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "apps/web": {
-      "entry": [
-        "src/app/app.config.ts",
-        "src/app/app.routes.ts",
-        "src/main.ts",
-        "src/**/*.spec.ts"
-      ],
-      "project": ["src/**/*.ts"],
-      "ignore": ["src/styles.css"]
+      "entry": ["src/app/app.config.ts", "src/app/app.routes.ts", "src/**/*.spec.ts"],
+      "project": ["src/**/*.ts"]
     },
     "apps/worker": {
       "entry": ["src/main.ts", "src/**/*.module.ts", "src/**/*.spec.ts"],

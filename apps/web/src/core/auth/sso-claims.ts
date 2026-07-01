@@ -1,6 +1,6 @@
 import type { AgentProfile } from '../models/document.model';
 
-export type SsoRole = 'agent' | 'chef_service' | 'directeur_greffe';
+type SsoRole = 'agent' | 'chef_service' | 'directeur_greffe';
 
 export interface SsoClaims {
   sub?: unknown;
