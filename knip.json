@@ -19,6 +19,10 @@
       "entry": ["src/client.ts"],
       "project": ["src/**/*.ts", "prisma/**/*.ts"],
       "ignoreDependencies": ["@prisma/client", "pg", "@types/pg"]
+    },
+    "packages/pdf-extraction": {
+      "entry": ["src/index.ts", "src/**/*.spec.ts"],
+      "project": ["src/**/*.ts", "vitest.config.ts"]
     }
   },
   "ignoreDependencies": ["vue"]

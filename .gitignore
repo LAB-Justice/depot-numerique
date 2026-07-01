@@ -1,5 +1,8 @@
 # Dependencies
 node_modules/
+dist/
+.pnpm-store/
+packages/pdf-extraction/.local-fixtures/
 
 # Alternative package manager lockfiles
 /package-lock.json
