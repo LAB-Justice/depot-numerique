@@ -4,13 +4,21 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 
 ## Development server
 
-To start a local development server, run:
+To start the local SSO simulation and the development server, run from the repository root:
 
 ```bash
-ng serve
+cp .env.example .env
+docker compose up -d --wait keycloak
+pnpm web:dev
 ```
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+
+The local Keycloak realm provides three demo accounts. They all use the password `password`:
+
+- `agent.olivier`
+- `chef-service.pierre`
+- `directeur-greffe.herve`
 
 ## Code scaffolding
 

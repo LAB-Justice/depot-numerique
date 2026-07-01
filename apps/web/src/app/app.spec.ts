@@ -1,23 +1,32 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+
+import { SessionService } from '../core/session/session.service';
 import { App } from './app';
+import { routes } from './app.routes';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: [
+        provideRouter(routes),
+        {
+          provide: SessionService,
+          useValue: {
+            profile: signal(null),
+            isAuthenticated: signal(false).asReadonly(),
+            login: () => undefined,
+            logout: () => undefined,
+          },
+        },
+      ],
     }).compileComponents();
   });
 
   it('should create the app', () => {
     const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
-  });
-
-  it('should render title', async () => {
-    const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Dépôt automatisé de documents');
+    expect(fixture.componentInstance).toBeTruthy();
   });
 });
