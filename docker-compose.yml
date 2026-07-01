@@ -19,7 +19,7 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:7.4.9-bookworm
+    image: redis:8.4.0-bookworm
     container_name: depot-numerique-redis
     restart: unless-stopped
     command:
