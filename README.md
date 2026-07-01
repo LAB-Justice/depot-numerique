@@ -67,9 +67,9 @@ cp packages/database/.env.example packages/database/.env
 cp apps/worker/.env.example apps/worker/.env
 ```
 
-Le fichier racine configure PostgreSQL, Redis et MinIO. Le fichier de l'API définit `API_PORT` et
-`NODE_ENV`, celui de Prisma fournit `DATABASE_URL`, et celui du worker définit `WORKER_PORT` et
-`NODE_ENV`. Ces fichiers ne doivent pas être commités.
+Le fichier racine configure PostgreSQL, Redis, MinIO et le simulateur SSO Keycloak. Le fichier de
+l'API définit `API_PORT` et `NODE_ENV`, celui de Prisma fournit `DATABASE_URL`, et celui du worker
+définit `WORKER_PORT` et `NODE_ENV`. Ces fichiers ne doivent pas être commités.
 
 ## Lancer le projet
 
@@ -80,8 +80,8 @@ développement déclarées dans les workspaces :
 pnpm dev
 ```
 
-Cette commande lance PostgreSQL, Redis et MinIO, puis Turbo démarre l'API, le frontend, le worker et
-la documentation.
+Cette commande lance PostgreSQL, Redis, MinIO et Keycloak, puis Turbo démarre l'API, le frontend, le
+worker et la documentation.
 
 Pour lancer l'API NestJS, le frontend Angular et le worker BullMQ sans démarrer l'infrastructure
 Docker ni la documentation :
@@ -95,6 +95,8 @@ Services exposés en développement :
 - API NestJS : `http://localhost:3000`
 - Frontend Angular : `http://localhost:4200`
 - Documentation VitePress : `http://localhost:5173/depot-numerique/`
+- Administration Keycloak : `http://localhost:8080/admin/master/console/`
+- Compte utilisateur Keycloak : `http://localhost:8080/realms/depot-numerique/account/`
 
 ## Lancer Un Service Applicatif
 
@@ -370,6 +372,7 @@ Services disponibles :
 - PostgreSQL : base de données métier ;
 - Redis : cache et backend BullMQ ;
 - MinIO : stockage des documents ;
+- Keycloak : simulation locale du SSO et de ses claims ;
 - plus tard, images séparées pour l'API, le frontend et les workers.
 
 Les versions d'images sont volontairement fixées dans `docker-compose.yml`. Ne pas utiliser `latest` pour les services d'infrastructure.
@@ -379,6 +382,7 @@ Versions locales actuelles :
 - PostgreSQL : `postgres:17.10-bookworm`
 - Redis : `redis:7.4.9-bookworm`
 - MinIO : `minio/minio:RELEASE.2025-09-07T16-13-09Z`
+- Keycloak : `quay.io/keycloak/keycloak:26.6.4`
 
 Dependabot surveille les mises à jour Docker Compose, GitHub Actions et npm/pnpm via `.github/dependabot.yml`.
 
@@ -414,6 +418,23 @@ Lancer uniquement MinIO :
 docker compose up -d minio
 ```
 
+Lancer uniquement Keycloak et attendre sa disponibilité :
+
+```bash
+docker compose up -d --wait keycloak
+```
+
+Keycloak importe le realm `depot-numerique` depuis `keycloak/realm.json`. Après une modification de
+ce fichier, forcer la recréation du conteneur :
+
+```bash
+docker compose up -d --force-recreate --wait keycloak
+```
+
+Cette instance utilise `start-dev`, une base H2 éphémère et des comptes publics de démonstration. Elle
+est strictement réservée au développement local. Consulter la documentation
+[SSO local avec Keycloak](docs/keycloak.md) pour les comptes, rôles, claims et procédures de test.
+
 Vérifier leur état :
 
 ```bash
@@ -438,7 +459,8 @@ Supprimer aussi les volumes locaux :
 docker compose down -v
 ```
 
-Attention : `docker compose down -v` supprime les données PostgreSQL, Redis et MinIO locales.
+Attention : `docker compose down -v` supprime les données PostgreSQL, Redis et MinIO locales. Les
+données Keycloak sont éphémères et sont recréées depuis le fichier du realm.
 
 Accès locaux par défaut :
 
@@ -446,6 +468,7 @@ Accès locaux par défaut :
 - Redis : `localhost:6379`
 - MinIO API : `http://localhost:9000`
 - MinIO Console : `http://localhost:9001`
+- Keycloak : `http://localhost:8080`
 
 Les identifiants locaux sont définis dans `.env`.
 
@@ -487,6 +510,7 @@ packages/
 - ORM : `Prisma`
 - Queue et cache : `BullMQ`, `Redis`
 - Stockage fichiers : `MinIO`
+- SSO local : `Keycloak`
 - Automatisation web : `Playwright`
 - Documentation API : `Swagger / OpenAPI`
 - Conteneurisation : `Docker`, `Docker Compose`
