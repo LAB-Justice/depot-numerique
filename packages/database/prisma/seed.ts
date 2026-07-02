@@ -1,5 +1,5 @@
 import type { Prisma } from '../generated/prisma/client.js';
-import { prisma } from '../src/client.js';
+import { createDatabaseClient } from '../src/client.js';
 
 const jurisdictionData: Prisma.JurisdictionCreateInput[] = [
   {
@@ -37,39 +37,50 @@ const serviceData: Prisma.ServiceCreateWithoutJurisdictionInput[] = [
 ];
 
 export async function main(): Promise<void> {
-  await prisma.$transaction(async (transaction) => {
-    for (const jurisdictionInput of jurisdictionData) {
-      const jurisdiction = await transaction.jurisdiction.upsert({
-        where: { ssoCode: jurisdictionInput.ssoCode },
-        update: {
-          slug: jurisdictionInput.slug,
-          displayName: jurisdictionInput.displayName,
-          isActive: true,
-        },
-        create: jurisdictionInput,
-      });
+  const databaseUrl = process.env.DATABASE_URL;
 
-      for (const serviceInput of serviceData) {
-        await transaction.service.upsert({
-          where: {
-            jurisdictionId_ssoCode: {
-              jurisdictionId: jurisdiction.id,
-              ssoCode: serviceInput.ssoCode,
-            },
-          },
+  if (!databaseUrl?.trim()) {
+    throw new Error('DATABASE_URL is required to initialize Prisma');
+  }
+  const prisma = createDatabaseClient(databaseUrl);
+
+  try {
+    await prisma.$transaction(async (transaction) => {
+      for (const jurisdictionInput of jurisdictionData) {
+        const jurisdiction = await transaction.jurisdiction.upsert({
+          where: { ssoCode: jurisdictionInput.ssoCode },
           update: {
-            slug: serviceInput.slug,
-            displayName: serviceInput.displayName,
+            slug: jurisdictionInput.slug,
+            displayName: jurisdictionInput.displayName,
             isActive: true,
           },
-          create: {
-            ...serviceInput,
-            jurisdictionId: jurisdiction.id,
-          },
+          create: jurisdictionInput,
         });
+
+        for (const serviceInput of serviceData) {
+          await transaction.service.upsert({
+            where: {
+              jurisdictionId_ssoCode: {
+                jurisdictionId: jurisdiction.id,
+                ssoCode: serviceInput.ssoCode,
+              },
+            },
+            update: {
+              slug: serviceInput.slug,
+              displayName: serviceInput.displayName,
+              isActive: true,
+            },
+            create: {
+              ...serviceInput,
+              jurisdictionId: jurisdiction.id,
+            },
+          });
+        }
       }
-    }
-  });
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 try {
@@ -81,6 +92,4 @@ try {
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(`Database seed failed: ${message}\n`);
   process.exitCode = 1;
-} finally {
-  await prisma.$disconnect();
 }
