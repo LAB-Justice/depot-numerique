@@ -20,7 +20,8 @@
     "check": "biome check .",
     "check:fix": "biome check --write .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "evaluate": "pnpm build && node scripts/evaluate-corpus.mjs"
   },
   "dependencies": {
     "pdfjs-dist": "^5.4.394",

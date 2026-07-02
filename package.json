@@ -16,6 +16,7 @@
     "docs:build": "turbo build --filter @depot-numerique/docs",
     "database:build": "turbo build --filter @depot-numerique/database",
     "pdf-extraction:build": "turbo build --filter @depot-numerique/pdf-extraction",
+    "pdf-extraction:evaluate": "pnpm --filter @depot-numerique/pdf-extraction evaluate",
     "root:lint": "biome lint package.json biome.json knip.json turbo.json commitlint.config.cjs",
     "lint": "pnpm root:lint && turbo lint",
     "api:lint": "turbo lint --filter api",

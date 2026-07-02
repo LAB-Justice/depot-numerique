@@ -4,6 +4,9 @@ dist/
 .pnpm-store/
 packages/pdf-extraction/.local-fixtures/
 
+# Local evaluation corpus outputs (real PDFs, never commit)
+packages/pdf-extraction/.evaluation/
+
 # Alternative package manager lockfiles
 /package-lock.json
 /yarn.lock
