@@ -225,6 +225,59 @@ interface ExtractionValidation {
 | `AID_DECISION`           | Décision d'aide juridictionnelle.                        |
 | `UNKNOWN`                | Type non reconnu (extraction textuelle toutefois possible). |
 
+## Evaluation locale de corpus
+
+Une commande locale permet de tester l'extracteur sur un dossier de PDF réels sans produire un énorme JSON unique :
+
+```bash
+pnpm pdf-extraction:evaluate ./chemin/vers/dossier-pdf
+```
+
+Sans argument, le dossier lu est `packages/pdf-extraction/.local-fixtures/`. Le script parcourt récursivement tous les fichiers `.pdf`, calcule un hash SHA-256 par fichier, lance `extractPdfDocument` sans `includeRawText`, sans `includePageTexts` et sans `includeLayout`, puis écrit les rapports sous :
+
+```txt
+packages/pdf-extraction/.evaluation/
+├─ latest/
+│  ├─ summary.md
+│  ├─ documents.csv
+│  ├─ issues.csv
+│  ├─ failures.csv
+│  ├─ by-document-type.csv
+│  ├─ by-source-folder.csv
+│  ├─ samples-to-review.csv
+│  └─ raw-results.jsonl
+└─ runs/
+   └─ YYYY-MM-DD-HHMMSS/
+      └─ mêmes fichiers
+```
+
+`latest/` est une copie du dernier run, pas un symlink. Le dossier `.evaluation/` est ignoré par Git.
+
+### Rapports générés
+
+- `summary.md` : synthèse humaine (volumétrie, statuts, types, top issues, complétude destinataire, performances, fichiers à revoir).
+- `documents.csv` : une ligne par PDF avec chemins, taille, hash, statuts, scores, booléens de présence, issues et temps de traitement.
+- `issues.csv` : agrégat par issue code (`issueCode`, `severity`, `count`, `percent`).
+- `failures.csv` : erreurs techniques (`fileName`, `relativePath`, `sourceFolder`, `errorMessage`, `processingTimeMs`).
+- `by-document-type.csv` : statistiques par `documentType`.
+- `by-source-folder.csv` : statistiques par premier sous-dossier source.
+- `samples-to-review.csv` : liste priorisée, limitée à 50 lignes par défaut, avec `fileHash` pour retrouver le document sans exposer de référence numérique.
+- `raw-results.jsonl` : une ligne JSON par PDF avec le résultat complet local.
+
+### Confidentialité
+
+Par défaut, les CSV et `summary.md` n'incluent pas les valeurs extraites : pas de noms, adresses, numéros de dossier, texte brut, `rawText`, `pageTexts` ou `layoutBlocks`. Ils utilisent des booléens, scores, statuts, issues, chemins expurgés et hashes. Les séquences numériques longues présentes dans `fileName`, `relativePath` ou `sourceFolder` sont masquées.
+
+`raw-results.jsonl` contient le résultat complet de `extractPdfDocument`, donc les valeurs structurées et `sourceText` des champs extraits. Il doit rester local sous `.evaluation/`.
+
+Une option de diagnostic local existe :
+
+```bash
+pnpm pdf-extraction:evaluate ./chemin/vers/dossier-pdf --include-values
+```
+
+`--include-values` ajoute des colonnes sensibles à `documents.csv` (`recipientName`, `organization`, `streetLine`, `postalCode`, `city`, `requestNumber`, `jurisdiction`, `service`) et conserve les identifiants locaux non expurgés dans les rapports. Elle est désactivée par défaut et ne doit pas être utilisée pour des rapports partageables.
+
 ## Limites actuelles
 
 La V1 est déterministe et textuelle. Elle ne couvre pas :
