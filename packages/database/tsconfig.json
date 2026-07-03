@@ -6,7 +6,7 @@
     "strict": true,
     "noEmit": true,
     "types": ["node"],
-    "verbatimModuleSyntax": true,
+    "verbatimModuleSyntax": false,
     "isolatedModules": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
