@@ -53,10 +53,10 @@ cp apps/worker/.env.example apps/worker/.env
 
 Le `.env` racine configure Docker Compose et expose les variables partagées (Redis, Postgres, MinIO,
 Keycloak).
-Le `.env` du workspace API configure son port (`API_PORT`) et son mode d'exécution (`NODE_ENV`). Le
-`.env` du workspace database contient uniquement `DATABASE_URL` pour les commandes Prisma. Le `.env`
-du workspace worker contient son port (`WORKER_PORT`) et son mode d'exécution (`NODE_ENV`). Aucun de
-ces fichiers ne doit être commité.
+Le `.env` du workspace API configure son exécution, le niveau de logs et ses connexions à
+PostgreSQL, Redis et MinIO. Le `.env` du workspace database contient uniquement `DATABASE_URL` pour
+les commandes Prisma. Le `.env` du workspace worker contient son port (`WORKER_PORT`) et son mode
+d'exécution (`NODE_ENV`). Aucun de ces fichiers ne doit être commité.
 
 Installer les hooks Git locaux si nécessaire :
 
@@ -241,6 +241,7 @@ Commandes ciblées API :
 pnpm api:dev
 pnpm api:build
 pnpm api:test
+pnpm api:test:e2e
 pnpm api:typecheck
 pnpm api:lint
 pnpm api:format
@@ -395,4 +396,8 @@ Lancer tous les tests :
 
 ```bash
 pnpm test
+pnpm api:test:e2e
 ```
+
+`pnpm test` exécute les tests unitaires des workspaces. Les tests e2e HTTP de l'API sont séparés et
+utilisent des doublures pour PostgreSQL, Redis et MinIO ; ils ne nécessitent donc pas Docker.

@@ -68,8 +68,9 @@ cp apps/worker/.env.example apps/worker/.env
 ```
 
 Le fichier racine configure PostgreSQL, Redis, MinIO et le simulateur SSO Keycloak. Le fichier de
-l'API définit `API_PORT` et `NODE_ENV`, celui de Prisma fournit `DATABASE_URL`, et celui du worker
-définit `WORKER_PORT` et `NODE_ENV`. Ces fichiers ne doivent pas être commités.
+l'API configure son exécution ainsi que ses connexions à PostgreSQL, Redis et MinIO. Le fichier de
+Prisma fournit `DATABASE_URL` aux commandes Prisma, et celui du worker définit `WORKER_PORT` et
+`NODE_ENV`. Ces fichiers ne doivent pas être commités.
 
 ## Lancer le projet
 
@@ -93,6 +94,8 @@ pnpm apps:dev
 Services exposés en développement :
 
 - API NestJS : `http://localhost:3000`
+- Swagger : `http://localhost:3000/api/docs`
+- Santé de l'API : `http://localhost:3000/api/health/live` et `http://localhost:3000/api/health/ready`
 - Frontend Angular : `http://localhost:4200`
 - Documentation VitePress : `http://localhost:5173/depot-numerique/`
 - Administration Keycloak : `http://localhost:8080/admin/master/console/`
@@ -174,12 +177,15 @@ Lancer les tests d'un workspace précis :
 
 ```bash
 pnpm api:test
+pnpm api:test:e2e
 pnpm web:test
 pnpm worker:test
 ```
 
-Le test du worker couvre le processor de la queue de démonstration sans nécessiter Redis. Il n'y a
-pas de commande `docs:test`, car la documentation n'expose pas de script de test.
+`pnpm api:test:e2e` vérifie les contrats HTTP avec des dépendances techniques simulées et ne
+nécessite pas Docker. Le test du worker couvre le processor de la queue de démonstration sans
+nécessiter Redis. Il n'y a pas de commande `docs:test`, car la documentation n'expose pas de script
+de test.
 
 Lancer le lint Biome :
 
