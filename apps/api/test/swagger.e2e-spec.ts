@@ -4,34 +4,39 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { configureApp } from './../src/bootstrap/configure-app';
+import { configureSwagger } from './../src/bootstrap/configure-swagger';
 
-describe('AppController (e2e)', () => {
+describe('Swagger (e2e)', () => {
   let app: INestApplication<App>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
+
     configureApp(app);
+    configureSwagger(app);
 
     await app.init();
   });
 
-  it('/api/v1 (GET)', () => {
-    return request(app.getHttpServer()).get('/api/v1').expect(200).expect('Hello World!');
+  it('/api/docs-json (GET) should expose the OpenAPI contract', async () => {
+    const response = await request(app.getHttpServer()).get('/api/docs-json').expect(200);
+
+    expect(response.body).toMatchObject({
+      info: {
+        title: 'Dépôt Numérique API',
+        version: '1.0',
+      },
+      paths: {
+        '/api/v1': expect.any(Object),
+      },
+    });
   });
 
-  it('/ (GET) should not expose an unversioned route', () => {
-    return request(app.getHttpServer()).get('/').expect(404);
-  });
-
-  it('/api/v2 (GET) should reject an unknown version', () => {
-    return request(app.getHttpServer()).get('/api/v2').expect(404);
-  });
-
-  afterEach(async () => {
+  afterAll(async () => {
     await app.close();
   });
 });
