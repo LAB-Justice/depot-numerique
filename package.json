@@ -68,6 +68,7 @@
     "prepare": "lefthook install",
     "test": "turbo test",
     "api:test": "turbo test --filter api",
+    "api:test:e2e": "pnpm --filter api test:e2e",
     "web:test": "turbo test --filter web",
     "worker:test": "turbo test --filter worker",
     "database:generate": "pnpm --filter @depot-numerique/database generate",
