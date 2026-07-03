@@ -83,13 +83,14 @@ export async function main(): Promise<void> {
   }
 }
 
-try {
-  await main();
-  process.stdout.write(
-    `Seed completed: ${jurisdictionData.length} jurisdictions and ${jurisdictionData.length * serviceData.length} services.\n`,
-  );
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`Database seed failed: ${message}\n`);
-  process.exitCode = 1;
-}
+void main()
+  .then(() => {
+    process.stdout.write(
+      `Seed completed: ${jurisdictionData.length} jurisdictions and ${jurisdictionData.length * serviceData.length} services.\n`,
+    );
+  })
+  .catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Database seed failed: ${message}\n`);
+    process.exitCode = 1;
+  });

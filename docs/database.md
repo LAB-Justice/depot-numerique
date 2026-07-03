@@ -13,13 +13,15 @@ packages/database/
     migrations/         # Historique SQL versionné
     seed.ts             # Données de développement et de test
   src/
-    client.ts           # Instance Prisma partagée par processus
+    client.ts           # Fabrique de clients Prisma typés
   generated/prisma/     # Client généré, non versionné
   prisma.config.ts      # Configuration de la CLI Prisma
 ```
 
-Le client généré et le dossier `dist` ne sont pas commités. Ils sont reconstruits avec
-`pnpm database:generate` et `pnpm database:build`.
+Le package expose une fabrique afin que chaque processus crée et maîtrise le cycle de vie de son
+propre client. Dans l'API NestJS, `DatabaseService` conserve une seule instance par processus et la
+déconnecte lors de l'arrêt de l'application. Le client généré et le dossier `dist` ne sont pas
+commités. Ils sont reconstruits avec `pnpm database:generate` et `pnpm database:build`.
 
 ## Configuration locale
 
