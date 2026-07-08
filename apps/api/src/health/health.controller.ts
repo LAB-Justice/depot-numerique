@@ -1,5 +1,11 @@
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiServiceUnavailableResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import {
   HealthCheck,
   type HealthCheckResult,
   HealthCheckService,
@@ -9,6 +15,7 @@ import { DatabaseService } from '../database/database.service';
 import { MinioHealthIndicator } from './minio.health-indicator';
 import { RedisHealthIndicator } from './redis.health-indicator';
 
+@ApiTags('health')
 @Controller({
   path: 'health',
   version: VERSION_NEUTRAL,
@@ -24,12 +31,29 @@ export class HealthController {
 
   @Get('live')
   @HealthCheck()
+  @ApiOperation({
+    summary: 'Vérifier que l’API est démarrée',
+    description: 'Contrôle de vie ne dépendant pas de PostgreSQL, Redis ou MinIO.',
+  })
+  @ApiOkResponse({
+    description: 'L’API est démarrée.',
+  })
   liveness(): Promise<HealthCheckResult> {
     return this.health.check([]);
   }
 
   @Get('ready')
   @HealthCheck()
+  @ApiOperation({
+    summary: 'Vérifier que l’API est prête à recevoir du trafic',
+    description: 'Contrôle PostgreSQL, Redis et MinIO avant exposition au trafic applicatif.',
+  })
+  @ApiOkResponse({
+    description: 'Toutes les dépendances nécessaires sont disponibles.',
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'Une ou plusieurs dépendances nécessaires sont indisponibles.',
+  })
   readiness(): Promise<HealthCheckResult> {
     return this.health.check([
       () =>
