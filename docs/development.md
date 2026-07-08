@@ -124,6 +124,8 @@ URLs locales :
 - API : `http://localhost:3000`
 - Frontend : `http://localhost:4200`
 - Documentation : `http://localhost:5173/depot-numerique/`
+- Administration Keycloak : `http://localhost:8080/admin/master/console/`
+- Compte utilisateur Keycloak : `http://localhost:8080/realms/depot-numerique/account/`
 
 ## Services Docker
 
