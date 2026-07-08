@@ -69,15 +69,21 @@ pnpm prepare
 
 Les commandes de développement suivent la même convention que les autres tâches du monorepo :
 
-- `pnpm dev` démarre PostgreSQL, Redis, MinIO, OpenLDAP, phpLDAPadmin et Keycloak avec Docker
-  Compose, attend leur disponibilité, puis lance l'API, le frontend, le worker et la documentation.
+- `pnpm dev` lance l'API, le frontend, le worker et la documentation avec Turbo.
 - `pnpm infra:dev` démarre uniquement les services techniques Docker.
 - `pnpm apps:dev` lance uniquement les applications métier : `api`, `web` et `worker`.
 - `pnpm <workspace>:dev` lance un seul workspace (`api:dev`, `web:dev`, `worker:dev`).
 
 Les serveurs `dev` sont déclarés comme persistants dans Turbo : ils restent actifs tant que le terminal est ouvert et ne sont pas mis en cache.
 
-Lancer tout l'environnement local :
+Le développement local utilise deux terminaux. Dans le premier, démarrer l'infrastructure et attendre
+que les conteneurs soient disponibles :
+
+```bash
+pnpm infra:dev
+```
+
+Dans le second, lancer tous les workspaces en développement :
 
 ```bash
 pnpm dev
@@ -121,7 +127,7 @@ URLs locales :
 
 ## Services Docker
 
-Les services techniques locaux sont lancés automatiquement par `pnpm dev`. Pour les démarrer seuls :
+Les services techniques locaux sont indépendants des processus applicatifs. Les démarrer avec :
 
 ```bash
 pnpm infra:dev

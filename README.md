@@ -75,15 +75,22 @@ doivent pas être commités.
 
 ## Lancer le projet
 
-Pour démarrer les services Docker, attendre leur disponibilité, puis lancer toutes les tâches de
-développement déclarées dans les workspaces :
+Le développement local utilise deux terminaux afin de séparer les services Docker des applications.
+
+Dans un premier terminal, démarrer les services techniques et attendre leur disponibilité :
+
+```bash
+pnpm infra:dev
+```
+
+Dans un second terminal, lancer toutes les tâches de développement déclarées dans les workspaces :
 
 ```bash
 pnpm dev
 ```
 
-Cette commande lance PostgreSQL, Redis, MinIO, OpenLDAP, phpLDAPadmin et Keycloak, puis Turbo démarre
-l'API, le frontend, le worker et la documentation.
+`pnpm infra:dev` lance PostgreSQL, Redis, MinIO, OpenLDAP, phpLDAPadmin et Keycloak avec Docker
+Compose. `pnpm dev` lance l'API, le frontend, le worker et la documentation avec Turbo.
 
 Pour lancer l'API NestJS, le frontend Angular et le worker BullMQ sans démarrer l'infrastructure
 Docker ni la documentation :
@@ -397,10 +404,10 @@ cp .env.example .env
 
 Le fichier `.env` ne doit pas être commit. Il est ignoré par Git.
 
-Lancer les services :
+Lancer tous les services techniques :
 
 ```bash
-docker compose up -d
+pnpm infra:dev
 ```
 
 Lancer uniquement PostgreSQL :
