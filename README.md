@@ -9,6 +9,7 @@ Le projet est initialisé en monorepo avec `pnpm` et `Turbo`. Il contient actuel
 - `apps/worker` : workers BullMQ ;
 - `packages/database` : schéma, migrations, seed et client Prisma partagés ;
 - `docs` : documentation VitePress ;
+- `sso` : simulateur SSO local avec Keycloak SAML et OpenLDAP ;
 - `turbo.json` : configuration des tâches monorepo ;
 - `pnpm-workspace.yaml` : déclaration des workspaces pnpm.
 
@@ -67,9 +68,10 @@ cp packages/database/.env.example packages/database/.env
 cp apps/worker/.env.example apps/worker/.env
 ```
 
-Le fichier racine configure PostgreSQL, Redis, MinIO et le simulateur SSO Keycloak. Le fichier de
-l'API définit `API_PORT` et `NODE_ENV`, celui de Prisma fournit `DATABASE_URL`, et celui du worker
-définit `WORKER_PORT` et `NODE_ENV`. Ces fichiers ne doivent pas être commités.
+Le fichier racine configure PostgreSQL, Redis, MinIO et le simulateur SSO local
+Keycloak/OpenLDAP/phpLDAPadmin. Le fichier de l'API définit `API_PORT` et `NODE_ENV`, celui de Prisma
+fournit `DATABASE_URL`, et celui du worker définit `WORKER_PORT` et `NODE_ENV`. Ces fichiers ne
+doivent pas être commités.
 
 ## Lancer le projet
 
@@ -80,8 +82,8 @@ développement déclarées dans les workspaces :
 pnpm dev
 ```
 
-Cette commande lance PostgreSQL, Redis, MinIO et Keycloak, puis Turbo démarre l'API, le frontend, le
-worker et la documentation.
+Cette commande lance PostgreSQL, Redis, MinIO, OpenLDAP, phpLDAPadmin et Keycloak, puis Turbo démarre
+l'API, le frontend, le worker et la documentation.
 
 Pour lancer l'API NestJS, le frontend Angular et le worker BullMQ sans démarrer l'infrastructure
 Docker ni la documentation :
@@ -94,9 +96,6 @@ Services exposés en développement :
 
 - API NestJS : `http://localhost:3000`
 - Frontend Angular : `http://localhost:4200`
-- Documentation VitePress : `http://localhost:5173/depot-numerique/`
-- Administration Keycloak : `http://localhost:8080/admin/master/console/`
-- Compte utilisateur Keycloak : `http://localhost:8080/realms/depot-numerique/account/`
 
 ## Lancer Un Service Applicatif
 
@@ -372,7 +371,9 @@ Services disponibles :
 - PostgreSQL : base de données métier ;
 - Redis : cache et backend BullMQ ;
 - MinIO : stockage des documents ;
-- Keycloak : simulation locale du SSO et de ses claims ;
+- OpenLDAP : annuaire local simulant les utilisateurs et rattachements SRJ ;
+- phpLDAPadmin : interface graphique locale pour inspecter l'annuaire LDAP ;
+- Keycloak : fournisseur d'identité SAML local branché sur OpenLDAP ;
 - plus tard, images séparées pour l'API, le frontend et les workers.
 
 Les versions d'images sont volontairement fixées dans `docker-compose.yml`. Ne pas utiliser `latest` pour les services d'infrastructure.
@@ -382,6 +383,8 @@ Versions locales actuelles :
 - PostgreSQL : `postgres:17.10-bookworm`
 - Redis : `redis:7.4.9-bookworm`
 - MinIO : `minio/minio:RELEASE.2025-09-07T16-13-09Z`
+- OpenLDAP : `osixia/openldap:1.5.0`
+- phpLDAPadmin : `osixia/phpldapadmin:0.9.0`
 - Keycloak : `quay.io/keycloak/keycloak:26.6.4`
 
 Dependabot surveille les mises à jour Docker Compose, GitHub Actions et npm/pnpm via `.github/dependabot.yml`.
@@ -424,16 +427,25 @@ Lancer uniquement Keycloak et attendre sa disponibilité :
 docker compose up -d --wait keycloak
 ```
 
-Keycloak importe le realm `depot-numerique` depuis `keycloak/realm.json`. Après une modification de
-ce fichier, forcer la recréation du conteneur :
+Lancer uniquement l'annuaire LDAP et son interface graphique :
+
+```bash
+docker compose up -d --wait openldap phpldapadmin
+```
+
+Keycloak importe le realm `depot-numerique` depuis `sso/keycloak/realm.json` et lit les utilisateurs
+dans OpenLDAP. Les données LDAP locales sont initialisées depuis `sso/openldap/schema` et
+`sso/openldap/ldif`. Après une modification du realm, forcer la recréation du conteneur :
 
 ```bash
 docker compose up -d --force-recreate --wait keycloak
 ```
 
-Cette instance utilise `start-dev`, une base H2 éphémère et des comptes publics de démonstration. Elle
-est strictement réservée au développement local. Consulter la documentation
-[SSO local avec Keycloak](docs/keycloak.md) pour les comptes, rôles, claims et procédures de test.
+Après une modification du schéma ou du LDIF OpenLDAP, il faut recréer les volumes OpenLDAP locaux pour
+réimporter l'annuaire. Cette instance utilise `start-dev`, HTTP, une base H2 éphémère et des mots de
+passe publics de démonstration. Elle est strictement réservée au développement local. Consulter la
+documentation [SSO SAML local](docs/keycloak.md) pour les comptes, rôles, attributs SAML et
+procédures de test.
 
 Vérifier leur état :
 
@@ -469,6 +481,8 @@ Accès locaux par défaut :
 - MinIO API : `http://localhost:9000`
 - MinIO Console : `http://localhost:9001`
 - Keycloak : `http://localhost:8080`
+- OpenLDAP : `ldap://localhost:389`
+- phpLDAPAdmin : `http://localhost:8081`
 
 Les identifiants locaux sont définis dans `.env`.
 
@@ -510,7 +524,7 @@ packages/
 - ORM : `Prisma`
 - Queue et cache : `BullMQ`, `Redis`
 - Stockage fichiers : `MinIO`
-- SSO local : `Keycloak`
+- SSO local : `Keycloak`, `OpenLDAP`, `phpLDAPAdmin`
 - Automatisation web : `Playwright`
 - Documentation API : `Swagger / OpenAPI`
 - Conteneurisation : `Docker`, `Docker Compose`
