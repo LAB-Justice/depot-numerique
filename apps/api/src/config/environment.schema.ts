@@ -26,4 +26,7 @@ export const environmentSchema = Joi.object({
   MINIO_RAW_BUCKET: Joi.string()
     .pattern(/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/)
     .default('documents-raw'),
+  CORS_ALLOWED_ORIGINS: Joi.string().default('http://localhost:4200'),
+  THROTTLE_TTL_MS: Joi.number().integer().min(1000).default(60000),
+  THROTTLE_LIMIT: Joi.number().integer().min(1).default(100),
 });
