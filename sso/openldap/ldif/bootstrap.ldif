@@ -1,0 +1,286 @@
+dn: ou=sites,dc=justice,dc=fr
+objectClass: top
+objectClass: organizationalUnit
+ou: sites
+description: Structures du referentiel SRJ
+
+dn: ou=00000001,ou=sites,dc=justice,dc=fr
+objectClass: top
+objectClass: organizationalUnit
+ou: 00000001
+description: Ministere de la Justice
+
+dn: ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+objectClass: top
+objectClass: organizationalUnit
+ou: 00000002
+description: Direction des services judiciaires
+
+dn: ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+objectClass: top
+objectClass: organizationalUnit
+ou: 00000003
+description: Cour d'appel de Douai
+
+dn: ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+objectClass: top
+objectClass: organizationalUnit
+ou: 00000004
+description: Tribunal judiciaire de Lille
+
+dn: ou=00000005,ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+objectClass: top
+objectClass: organizationalUnit
+ou: 00000005
+description: Tribunal de proximite de Tourcoing
+
+dn: ou=00000006,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+objectClass: top
+objectClass: organizationalUnit
+ou: 00000006
+description: Tribunal judiciaire d'Arras
+
+dn: ou=00000007,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+objectClass: top
+objectClass: organizationalUnit
+ou: 00000007
+description: Tribunal judiciaire de Douai
+
+dn: ou=00000008,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+objectClass: top
+objectClass: organizationalUnit
+ou: 00000008
+description: Cour d'appel d'Amiens
+
+dn: ou=00000009,ou=00000008,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+objectClass: top
+objectClass: organizationalUnit
+ou: 00000009
+description: Tribunal judiciaire d'Amiens
+
+dn: ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: organizationalUnit
+ou: people
+description: Utilisateurs de test
+
+dn: uid=admin-general.sophie,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: admin-general.sophie
+cn: Sophie Admin general
+sn: Admin general
+givenName: Sophie
+mail: admin-general.sophie@justice.fr
+userPassword: password
+igcid: 00000001
+logonId: sophie.admin-general
+roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_GENERAL
+bureauIGC: ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+
+dn: uid=admin-regional.pierre,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: admin-regional.pierre
+cn: Pierre Admin regional
+sn: Admin regional
+givenName: Pierre
+mail: admin-regional.pierre@justice.fr
+userPassword: password
+igcid: 00000002
+logonId: pierre.admin-regional
+roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL
+bureauIGC: ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+
+dn: uid=dg-lille.claire,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: dg-lille.claire
+cn: Claire Directrice greffe Lille
+sn: Directrice greffe Lille
+givenName: Claire
+mail: dg-lille.claire@justice.fr
+userPassword: password
+igcid: 00000003
+logonId: claire.dg-lille
+roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL
+bureauIGC: ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+
+dn: uid=agent-lille.olivier,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: agent-lille.olivier
+cn: Olivier Agent Lille
+sn: Agent Lille
+givenName: Olivier
+mail: agent-lille.olivier@justice.fr
+userPassword: password
+igcid: 00000004
+logonId: olivier.agent-lille
+roles: DEPOT_NUMERIQUE:AGENT
+bureauIGC: ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+
+dn: uid=agent-lille.marie,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: agent-lille.marie
+cn: Marie Agent Lille
+sn: Agent Lille
+givenName: Marie
+mail: agent-lille.marie@justice.fr
+userPassword: password
+igcid: 00000005
+logonId: marie.agent-lille
+roles: DEPOT_NUMERIQUE:AGENT
+bureauIGC: ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+
+dn: uid=agent-tprox-tourcoing.thomas,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: agent-tprox-tourcoing.thomas
+cn: Thomas Agent Tprox Tourcoing
+sn: Agent Tprox Tourcoing
+givenName: Thomas
+mail: agent-tprox-tourcoing.thomas@justice.fr
+userPassword: password
+igcid: 00000006
+logonId: thomas.agent-tprox-tourcoing
+roles: DEPOT_NUMERIQUE:AGENT
+bureauIGC: ou=00000005,ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+
+dn: uid=dg-arras.nadia,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: dg-arras.nadia
+cn: Nadia Directrice greffe Arras
+sn: Directrice greffe Arras
+givenName: Nadia
+mail: dg-arras.nadia@justice.fr
+userPassword: password
+igcid: 00000007
+logonId: nadia.dg-arras
+roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL
+bureauIGC: ou=00000006,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+
+dn: uid=agent-arras.luc,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: agent-arras.luc
+cn: Luc Agent Arras
+sn: Agent Arras
+givenName: Luc
+mail: agent-arras.luc@justice.fr
+userPassword: password
+igcid: 00000008
+logonId: luc.agent-arras
+roles: DEPOT_NUMERIQUE:AGENT
+bureauIGC: ou=00000006,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+
+dn: uid=dg-douai.elise,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: dg-douai.elise
+cn: Elise Directrice greffe Douai
+sn: Directrice greffe Douai
+givenName: Elise
+mail: dg-douai.elise@justice.fr
+userPassword: password
+igcid: 00000009
+logonId: elise.dg-douai
+roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL
+bureauIGC: ou=00000007,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+
+dn: uid=agent-douai.hugo,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: agent-douai.hugo
+cn: Hugo Agent Douai
+sn: Agent Douai
+givenName: Hugo
+mail: agent-douai.hugo@justice.fr
+userPassword: password
+igcid: 00000010
+logonId: hugo.agent-douai
+roles: DEPOT_NUMERIQUE:AGENT
+bureauIGC: ou=00000007,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+
+dn: uid=admin-regional-amiens.julien,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: admin-regional-amiens.julien
+cn: Julien Admin regional Amiens
+sn: Admin regional Amiens
+givenName: Julien
+mail: admin-regional-amiens.julien@justice.fr
+userPassword: password
+igcid: 00000011
+logonId: julien.admin-regional-amiens
+roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL
+bureauIGC: ou=00000008,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+
+dn: uid=dg-amiens.camille,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: dg-amiens.camille
+cn: Camille Directrice greffe Amiens
+sn: Directrice greffe Amiens
+givenName: Camille
+mail: dg-amiens.camille@justice.fr
+userPassword: password
+igcid: 00000012
+logonId: camille.dg-amiens
+roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL
+bureauIGC: ou=00000009,ou=00000008,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+
+dn: uid=agent-amiens.ines,ou=people,dc=justice,dc=fr
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: depotNumeriquePerson
+uid: agent-amiens.ines
+cn: Ines Agent Amiens
+sn: Agent Amiens
+givenName: Ines
+mail: agent-amiens.ines@justice.fr
+userPassword: password
+igcid: 00000013
+logonId: ines.agent-amiens
+roles: DEPOT_NUMERIQUE:AGENT
+bureauIGC: ou=00000009,ou=00000008,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
