@@ -21,11 +21,12 @@
     "typecheck": "pnpm generate && tsc --noEmit -p tsconfig.json",
     "generate": "prisma generate",
     "validate": "prisma validate",
+    "migrate:create": "prisma migrate dev --create-only",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "migrate:status": "prisma migrate status",
     "seed": "prisma db seed",
-    "studio": "prisma studio"
+    "studio": "prisma studio --port 5555"
   },
   "keywords": [],
   "author": "",
