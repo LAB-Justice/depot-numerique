@@ -100,8 +100,10 @@ Les structures de test sont :
         00000005  Tribunal de proximite de Tourcoing
       00000006  Tribunal judiciaire d'Arras
       00000007  Tribunal judiciaire de Douai
+      00000010  Conseil de prud'hommes de Lille
     00000008  Cour d'appel d'Amiens
       00000009  Tribunal judiciaire d'Amiens
+      00000011  Conseil de prud'hommes d'Amiens
 ```
 
 Chaque structure utilise :
@@ -109,8 +111,12 @@ Chaque structure utilise :
 - `ou` pour l'identifiant technique stable ;
 - `description` pour le libellé lisible.
 
-Le tribunal de proximité de Tourcoing est volontairement placé sous le TJ de Lille pour tester le cas
-où un administrateur local rattaché au TJ doit aussi couvrir une structure fille.
+Les CPH sont volontairement placés au même niveau que les tribunaux judiciaires sous leur cour
+d'appel. Le tribunal de proximité de Tourcoing reste placé sous le TJ de Lille pour tester le cas
+d'une structure fille.
+
+Les cours d'appel ont aussi des utilisateurs `AGENT`, car elles peuvent déposer directement au même
+titre que les autres structures.
 
 ## Rôles
 
@@ -133,17 +139,24 @@ Tous les comptes utilisent le mot de passe `password`.
 | Login | Rôle SSO | Rattachement |
 | --- | --- | --- |
 | `admin-general.sophie` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_GENERAL` | DSJ |
-| `admin-regional.pierre` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL` | CA Douai |
-| `dg-lille.claire` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TJ Lille |
+| `admin-regional-douai.pierre` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL` | CA Douai |
+| `admin-local-ca-douai.anne` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | CA Douai |
+| `agent-ca-douai.louis` | `DEPOT_NUMERIQUE:AGENT` | CA Douai |
+| `admin-local-lille.claire` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TJ Lille |
+| `admin-regional-lille.mathieu` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL` | TJ Lille |
 | `agent-lille.olivier` | `DEPOT_NUMERIQUE:AGENT` | TJ Lille |
 | `agent-lille.marie` | `DEPOT_NUMERIQUE:AGENT` | TJ Lille |
-| `agent-tprox-tourcoing.thomas` | `DEPOT_NUMERIQUE:AGENT` | TPROX Tourcoing |
-| `dg-arras.nadia` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TJ Arras |
+| `admin-local-tprox-tourcoing.thomas` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TPROX Tourcoing |
+| `admin-regional-tprox-tourcoing.nora` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL` | TPROX Tourcoing |
+| `admin-local-arras.nadia` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TJ Arras |
 | `agent-arras.luc` | `DEPOT_NUMERIQUE:AGENT` | TJ Arras |
-| `dg-douai.elise` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TJ Douai |
+| `admin-local-douai.elise` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TJ Douai |
 | `agent-douai.hugo` | `DEPOT_NUMERIQUE:AGENT` | TJ Douai |
+| `admin-local-cph-lille.sarah` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | CPH Lille |
 | `admin-regional-amiens.julien` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL` | CA Amiens |
-| `dg-amiens.camille` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TJ Amiens |
+| `admin-local-ca-amiens.camille` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | CA Amiens |
+| `agent-ca-amiens.emma` | `DEPOT_NUMERIQUE:AGENT` | CA Amiens |
+| `admin-local-amiens.manon` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TJ Amiens |
 | `agent-amiens.ines` | `DEPOT_NUMERIQUE:AGENT` | TJ Amiens |
 
 ## Attributs SAML

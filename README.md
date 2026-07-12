@@ -104,6 +104,24 @@ Services exposés en développement :
 - API NestJS : `http://localhost:3000`
 - Frontend Angular : `http://localhost:4200`
 
+## SSO Local
+
+Le projet utilise en développement un simulateur SSO SAML local. OpenLDAP contient l'annuaire de test
+avec les utilisateurs, leurs rôles et leur rattachement métier (`bureauIGC`). Keycloak est configuré
+comme fournisseur d'identité SAML et expose ces attributs à l'application.
+
+Les rôles applicatifs simulés sont :
+
+- `DEPOT_NUMERIQUE:ADMINISTRATEUR_GENERAL`
+- `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL`
+- `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL`
+- `DEPOT_NUMERIQUE:AGENT`
+
+L'arborescence LDAP locale simule notamment la DSJ, les cours d'appel, les tribunaux judiciaires, les
+CPH au niveau des cours d'appel et les tribunaux de proximité sous leur tribunal judiciaire. Les
+comptes de test et les attributs SAML exposés sont documentés dans
+[docs/keycloak.md](docs/keycloak.md), avec le détail du simulateur dans [sso/README.md](sso/README.md).
+
 ## Lancer Un Service Applicatif
 
 API NestJS :
