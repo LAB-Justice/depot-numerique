@@ -117,6 +117,7 @@ URLs locales :
 - API : `http://localhost:3000`
 - Frontend : `http://localhost:4200`
 - Documentation : `http://localhost:5173/depot-numerique/`
+- Prisma Studio : `http://localhost:5555`
 - Administration Keycloak : `http://localhost:8080/admin/master/console/`
 - Compte utilisateur Keycloak : `http://localhost:8080/realms/depot-numerique/account/`
 
@@ -308,12 +309,15 @@ pnpm database:check
 pnpm database:check:fix
 pnpm database:validate
 pnpm database:generate
+pnpm database:migrate:create
 pnpm database:migrate:dev
 pnpm database:migrate:deploy
 pnpm database:migrate:status
 pnpm database:seed
 pnpm database:studio
 ```
+
+Le script `pnpm database:studio` force Prisma Studio sur `http://localhost:5555`.
 
 Le workspace database n'a pas encore de commande de test dédiée.
 
@@ -335,12 +339,15 @@ dans GitHub et rendre obligatoires les checks `Quality`, `Tests` et `Build`.
 
 ## Base de données locale
 
-Lancer PostgreSQL puis créer la migration correspondant à une modification du schéma :
+Lancer PostgreSQL puis générer, sans l'appliquer, la migration correspondant à une modification du
+schéma :
 
 ```bash
 docker compose up -d postgres
-pnpm database:migrate:dev --name description
+pnpm database:migrate:create --name description
 ```
+
+Après relecture du SQL, `pnpm database:migrate:dev` applique localement les migrations en attente.
 
 Initialiser ou remettre à jour les données de développement :
 

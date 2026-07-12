@@ -20,9 +20,9 @@ La configuration locale fournit :
 - les claims `roles`, `jurisdiction_code` et `service_code` ;
 - une Account Console pour vérifier graphiquement la connexion.
 
-Keycloak conserve ses utilisateurs dans son stockage interne local. Aucune table utilisateur n'est
-créée dans la base PostgreSQL de l'application. À terme, l'application ne conservera qu'une référence
-pseudonymisée calculée à partir du claim OIDC `sub`.
+Keycloak conserve ses comptes de démonstration dans son stockage interne local. La table `User` de
+l'application est distincte : elle conserve l'identité pseudonymisée et les informations métier
+nécessaires, sans enregistrer l'identifiant externe brut.
 
 ## Fichiers de configuration
 
@@ -124,10 +124,14 @@ Les mappers produisent les informations suivantes dans les tokens du client :
 | `aud` | mapper d'audience | `depot-numerique` |
 | `roles` | rôles du client `depot-numerique` | `["agent"]` |
 | `jurisdiction_code` | attribut utilisateur | `TJ-LILLE` |
-| `service_code` | attribut utilisateur | `BAJ` |
+| `service_code` | attribut utilisateur de démonstration | `BAJ` |
 
-Les codes de juridiction et de service correspondent aux champs `ssoCode` du schéma Prisma. Ils ne
-sont pas des UUID PostgreSQL et ne créent aucune relation vers un utilisateur applicatif.
+Le code de juridiction de ce realm de développement correspond à un `Structure.ssoCode`. Dans la
+cible SSO, le DN LDAP `bureauIGC` ne sera pas persisté en base : il servira à calculer
+`User.workStructureId` et, pour les profils d'administration, `User.adminStructureId`. Le
+`service_code` de ce realm Keycloak historique n'est pas persisté dans `Service` : les services sont
+créés dans l'application par les administrateurs autorisés, puis les utilisateurs y sont affectés
+localement.
 
 ## Vérifier la configuration
 
