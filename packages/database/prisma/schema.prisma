@@ -53,50 +53,80 @@ enum DocumentFileKind {
   @@map("document_file_kind")
 }
 
-model Jurisdiction {
-  id          String    @id @default(uuid()) @db.Uuid
-  ssoCode     String    @unique @map("sso_code") @db.VarChar(100)
-  slug        String    @unique @db.VarChar(100)
-  displayName String    @map("display_name") @db.VarChar(255)
-  isActive    Boolean   @default(true) @map("is_active")
-  services    Service[]
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+enum UserRole {
+  ADMINISTRATEUR_GENERAL
+  ADMINISTRATEUR_REGIONAL
+  ADMINISTRATEUR_LOCAL
+  AGENT
 
-  @@map("jurisdictions")
+  @@map("user_role")
+}
+
+enum StructureLevel {
+  REGIONAL
+  JURISDICTION
+  SUB_JURISDICTION
+
+  @@map("structure_level")
+}
+
+model Structure {
+  id          String         @id @default(uuid()) @db.Uuid
+  ssoCode     String         @unique @map("sso_code") @db.VarChar(100)
+  displayName String         @map("display_name") @db.VarChar(255)
+  level       StructureLevel
+  parentId    String?        @map("parent_id") @db.Uuid
+  isActive    Boolean        @default(true) @map("is_active")
+
+  parent     Structure?  @relation("StructureHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children   Structure[] @relation("StructureHierarchy")
+  services   Service[]
+  workUsers  User[]      @relation("UserWorkStructure")
+  adminUsers User[]      @relation("UserAdminStructure")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([parentId])
+  @@index([level])
+  @@map("structures")
 }
 
 model Service {
-  id             String       @id @default(uuid()) @db.Uuid
-  jurisdictionId String       @map("jurisdiction_id") @db.Uuid
-  ssoCode        String       @map("sso_code") @db.VarChar(100)
-  slug           String       @db.VarChar(100)
-  displayName    String       @map("display_name") @db.VarChar(255)
-  isActive       Boolean      @default(true) @map("is_active")
-  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id], onDelete: Restrict)
-  documents      Document[]
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  id          String  @id @default(uuid()) @db.Uuid
+  structureId String  @map("structure_id") @db.Uuid
+  slug        String  @db.VarChar(100)
+  displayName String  @map("display_name") @db.VarChar(255)
+  isActive    Boolean @default(true) @map("is_active")
 
-  @@unique([jurisdictionId, ssoCode])
-  @@unique([jurisdictionId, slug])
+  structure Structure  @relation(fields: [structureId], references: [id], onDelete: Restrict)
+  documents Document[]
+  users     User[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([structureId, slug])
   @@map("services")
 }
 
 model Document {
-  id           String         @id @default(uuid()) @db.Uuid
-  serviceId    String         @map("service_id") @db.Uuid
-  mailType     MailType       @map("mail_type")
-  status       DocumentStatus @default(RECEIVED)
-  depositorRef String         @map("depositor_ref") @db.VarChar(128)
-  service      Service        @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  files        DocumentFile[]
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
+  id              String         @id @default(uuid()) @db.Uuid
+  serviceId       String         @map("service_id") @db.Uuid
+  mailType        MailType       @map("mail_type")
+  status          DocumentStatus @default(RECEIVED)
+  createdByUserId String         @map("created_by_user_id") @db.Uuid
 
+  service   Service        @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  createdBy User           @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  files     DocumentFile[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([createdByUserId])
   @@index([serviceId, createdAt])
   @@index([status, createdAt])
-  @@index([depositorRef, createdAt])
   @@map("documents")
 }
 
@@ -116,4 +146,32 @@ model DocumentFile {
   @@unique([bucket, objectKey])
   @@index([documentId, kind])
   @@map("document_files")
+}
+
+model User {
+  id               String   @id @default(uuid()) @db.Uuid
+  igcidHash        String   @unique @map("igcid_hash") @db.Char(64)
+  firstName        String   @map("first_name") @db.VarChar(100)
+  lastName         String   @map("last_name") @db.VarChar(100)
+  email            String   @db.VarChar(255)
+  role             UserRole
+  isActive         Boolean  @default(true) @map("is_active")
+  workStructureId  String?  @map("work_structure_id") @db.Uuid
+  adminStructureId String?  @map("admin_structure_id") @db.Uuid
+  serviceId        String?  @map("service_id") @db.Uuid
+
+  workStructure  Structure? @relation("UserWorkStructure", fields: [workStructureId], references: [id], onDelete: Restrict)
+  adminStructure Structure? @relation("UserAdminStructure", fields: [adminStructureId], references: [id], onDelete: Restrict)
+  service        Service?   @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  documents      Document[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  lastLoginAt DateTime @default(now()) @map("last_login_at")
+
+  @@index([workStructureId])
+  @@index([adminStructureId])
+  @@index([serviceId])
+  @@index([role])
+  @@map("users")
 }
