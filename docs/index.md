@@ -14,7 +14,7 @@ features:
   - title: Monorepo maîtrisé
     details: Socle pnpm et Turbo avec applications NestJS, Angular et documentation VitePress.
   - title: Services techniques locaux
-    details: PostgreSQL, Redis, MinIO et le simulateur SSO Keycloak sont lancés avec Docker Compose pour le développement.
+    details: PostgreSQL, Redis, MinIO et le simulateur SSO SAML Keycloak/OpenLDAP sont lancés avec Docker Compose pour le développement.
   - title: Qualité de code
     details: Biome, Knip et Lefthook structurent le formatage, le lint, les hooks Git et la détection de code mort.
 ---
@@ -36,7 +36,7 @@ Le cycle cible est le suivant : un agent dépose un document depuis l'interface 
 - ORM : `Prisma`
 - Queue et cache : `BullMQ`, `Redis`
 - Stockage fichiers : `MinIO`
-- SSO local : `Keycloak`
+- SSO local : `Keycloak`, `OpenLDAP`, `phpLDAPadmin`
 - Automatisation web : `Playwright`
 - Documentation API : `Swagger / OpenAPI`
 - Conteneurisation : `Docker`, `Docker Compose`
@@ -49,7 +49,7 @@ Le cycle cible est le suivant : un agent dépose un document depuis l'interface 
 ## Documentation disponible
 
 - [Développement local](/development)
-- [SSO local avec Keycloak](/keycloak)
+- [SSO SAML local](/keycloak)
 - [Base de données et migrations](/database)
 - [API](/api)
 - [Workers](/worker)

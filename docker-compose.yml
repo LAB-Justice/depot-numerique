@@ -63,11 +63,57 @@ services:
       retries: 5
       start_period: 15s
 
+  openldap:
+    image: osixia/openldap:1.5.0
+    container_name: depot-numerique-openldap
+    restart: unless-stopped
+    command: ["--copy-service"]
+    environment:
+      LDAP_ORGANISATION: "Justice"
+      LDAP_DOMAIN: "justice.fr"
+      LDAP_BASE_DN: "dc=justice,dc=fr"
+      LDAP_ADMIN_PASSWORD: ${OPENLDAP_ADMIN_PASSWORD:-admin}
+      LDAP_TLS: "false"
+      LDAP_REMOVE_CONFIG_AFTER_SETUP: "false"
+    ports:
+      - "${OPENLDAP_PORT:-389}:389"
+    volumes:
+      - openldap_data:/var/lib/ldap
+      - openldap_config:/etc/ldap/slapd.d
+      - ./sso/openldap/schema/depot-numerique.schema:/container/service/slapd/assets/config/bootstrap/schema/custom/depot-numerique.schema:ro
+      - ./sso/openldap/ldif/bootstrap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/bootstrap.ldif:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "ldapsearch -x -H ldap://localhost:389 -D cn=admin,dc=justice,dc=fr -w \"$${LDAP_ADMIN_PASSWORD}\" -b dc=justice,dc=fr -s base dc=justice",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  phpldapadmin:
+    image: osixia/phpldapadmin:0.9.0
+    container_name: depot-numerique-phpldapadmin
+    restart: unless-stopped
+    depends_on:
+      openldap:
+        condition: service_healthy
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: openldap
+      PHPLDAPADMIN_HTTPS: "false"
+    ports:
+      - "${PHPLDAPADMIN_PORT:-8081}:80"
+
   keycloak:
     image: quay.io/keycloak/keycloak:26.6.4
     container_name: depot-numerique-keycloak
     restart: unless-stopped
     command: ["start-dev", "--import-realm"]
+    depends_on:
+      openldap:
+        condition: service_healthy
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
@@ -75,7 +121,7 @@ services:
     ports:
       - "${KEYCLOAK_PORT:-8080}:8080"
     volumes:
-      - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+      - ./sso/keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
     healthcheck:
       test:
         [
@@ -93,3 +139,5 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
+  openldap_data:
+  openldap_config:

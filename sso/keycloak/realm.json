@@ -1,0 +1,348 @@
+{
+  "realm": "depot-numerique",
+  "displayName": "Dépôt Numérique - SSO SAML local",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "rememberMe": true,
+  "loginWithEmailAllowed": true,
+  "resetPasswordAllowed": false,
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"igcid\",\"displayName\":\"igcid\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"min\":8,\"max\":8}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"logonId\",\"displayName\":\"logonId\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"roles\",\"displayName\":\"roles\",\"group\":\"ldap-sso\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":true},{\"name\":\"bureauIGC\",\"displayName\":\"bureauIGC\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":512}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"affectationOp2\",\"displayName\":\"affectationOp2\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":512}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"affectationOp3\",\"displayName\":\"affectationOp3\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":512}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"affectationOp4\",\"displayName\":\"affectationOp4\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":512}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"ldap-sso\",\"displayHeader\":\"Attributs LDAP/SSO\",\"displayDescription\":\"Attributs transmis par le SSO intranet SAML\"}]}"
+          ]
+        }
+      }
+    ],
+    "org.keycloak.storage.UserStorageProvider": [
+      {
+        "name": "openldap-justice",
+        "providerId": "ldap",
+        "subComponents": {
+          "org.keycloak.storage.ldap.mappers.LDAPStorageMapper": [
+            {
+              "name": "username",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "always.read.value.from.ldap": ["true"],
+                "is.mandatory.in.ldap": ["true"],
+                "ldap.attribute": ["uid"],
+                "read.only": ["true"],
+                "user.model.attribute": ["username"]
+              }
+            },
+            {
+              "name": "first name",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "always.read.value.from.ldap": ["true"],
+                "is.mandatory.in.ldap": ["true"],
+                "ldap.attribute": ["givenName"],
+                "read.only": ["true"],
+                "user.model.attribute": ["firstName"]
+              }
+            },
+            {
+              "name": "last name",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "always.read.value.from.ldap": ["true"],
+                "is.mandatory.in.ldap": ["true"],
+                "ldap.attribute": ["sn"],
+                "read.only": ["true"],
+                "user.model.attribute": ["lastName"]
+              }
+            },
+            {
+              "name": "email",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "always.read.value.from.ldap": ["true"],
+                "is.mandatory.in.ldap": ["true"],
+                "ldap.attribute": ["mail"],
+                "read.only": ["true"],
+                "user.model.attribute": ["email"]
+              }
+            },
+            {
+              "name": "igcid",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "always.read.value.from.ldap": ["true"],
+                "is.binary.attribute": ["false"],
+                "is.mandatory.in.ldap": ["true"],
+                "ldap.attribute": ["igcid"],
+                "read.only": ["true"],
+                "user.model.attribute": ["igcid"]
+              }
+            },
+            {
+              "name": "logonId",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "always.read.value.from.ldap": ["true"],
+                "is.binary.attribute": ["false"],
+                "is.mandatory.in.ldap": ["true"],
+                "ldap.attribute": ["logonId"],
+                "read.only": ["true"],
+                "user.model.attribute": ["logonId"]
+              }
+            },
+            {
+              "name": "roles",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "always.read.value.from.ldap": ["true"],
+                "is.binary.attribute": ["false"],
+                "is.mandatory.in.ldap": ["true"],
+                "ldap.attribute": ["roles"],
+                "read.only": ["true"],
+                "user.model.attribute": ["roles"]
+              }
+            },
+            {
+              "name": "bureauIGC",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "always.read.value.from.ldap": ["true"],
+                "is.binary.attribute": ["false"],
+                "is.mandatory.in.ldap": ["true"],
+                "ldap.attribute": ["bureauIGC"],
+                "read.only": ["true"],
+                "user.model.attribute": ["bureauIGC"]
+              }
+            },
+            {
+              "name": "affectationOp2",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "always.read.value.from.ldap": ["true"],
+                "is.binary.attribute": ["false"],
+                "is.mandatory.in.ldap": ["false"],
+                "ldap.attribute": ["affectationOp2"],
+                "read.only": ["true"],
+                "user.model.attribute": ["affectationOp2"]
+              }
+            },
+            {
+              "name": "affectationOp3",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "always.read.value.from.ldap": ["true"],
+                "is.binary.attribute": ["false"],
+                "is.mandatory.in.ldap": ["false"],
+                "ldap.attribute": ["affectationOp3"],
+                "read.only": ["true"],
+                "user.model.attribute": ["affectationOp3"]
+              }
+            },
+            {
+              "name": "affectationOp4",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "always.read.value.from.ldap": ["true"],
+                "is.binary.attribute": ["false"],
+                "is.mandatory.in.ldap": ["false"],
+                "ldap.attribute": ["affectationOp4"],
+                "read.only": ["true"],
+                "user.model.attribute": ["affectationOp4"]
+              }
+            }
+          ]
+        },
+        "config": {
+          "allowKerberosAuthentication": ["false"],
+          "authType": ["simple"],
+          "batchSizeForSync": ["1000"],
+          "bindCredential": ["admin"],
+          "bindDn": ["cn=admin,dc=justice,dc=fr"],
+          "cachePolicy": ["DEFAULT"],
+          "changedSyncPeriod": ["-1"],
+          "connectionPooling": ["true"],
+          "connectionUrl": ["ldap://openldap:389"],
+          "debug": ["false"],
+          "editMode": ["READ_ONLY"],
+          "enabled": ["true"],
+          "fullSyncPeriod": ["-1"],
+          "importEnabled": ["true"],
+          "pagination": ["false"],
+          "priority": ["0"],
+          "rdnLDAPAttribute": ["uid"],
+          "searchScope": ["1"],
+          "syncRegistrations": ["false"],
+          "trustEmail": ["true"],
+          "useKerberosForPasswordAuthentication": ["false"],
+          "usePasswordModifyExtendedOp": ["false"],
+          "useTruststoreSpi": ["ldapsOnly"],
+          "userObjectClasses": ["inetOrgPerson, depotNumeriquePerson"],
+          "usernameLDAPAttribute": ["uid"],
+          "usersDn": ["ou=people,dc=justice,dc=fr"],
+          "uuidLDAPAttribute": ["entryUUID"],
+          "validatePasswordPolicy": ["false"],
+          "vendor": ["other"]
+        }
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "depot-numerique",
+      "name": "Dépôt Numérique",
+      "description": "Fournisseur de service SAML local de l'application Dépôt Numérique",
+      "enabled": true,
+      "protocol": "saml",
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "redirectUris": ["http://localhost:4200/saml/acs"],
+      "attributes": {
+        "saml.authnstatement": "true",
+        "saml.client.signature": "false",
+        "saml.encrypt": "false",
+        "saml.force.post.binding": "true",
+        "saml.multivalued.roles": "false",
+        "saml_name_id_format": "username",
+        "saml.onetimeuse.condition": "false",
+        "saml.server.signature": "true",
+        "saml.server.signature.keyinfo.ext": "false",
+        "saml.signature.algorithm": "RSA_SHA256",
+        "saml_assertion_consumer_url_post": "http://localhost:4200/saml/acs",
+        "saml_force_name_id_format": "false",
+        "saml_single_logout_service_url_post": "http://localhost:4200/saml/logout"
+      },
+      "protocolMappers": [
+        {
+          "name": "igcid",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "attribute.name": "igcid",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "igcid",
+            "single": "true",
+            "user.attribute": "igcid"
+          }
+        },
+        {
+          "name": "nom",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "attribute.name": "nom",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "nom",
+            "user.attribute": "lastName"
+          }
+        },
+        {
+          "name": "prenom",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "attribute.name": "prenom",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "prenom",
+            "user.attribute": "firstName"
+          }
+        },
+        {
+          "name": "logonId",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "attribute.name": "logonId",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "logonId",
+            "single": "true",
+            "user.attribute": "logonId"
+          }
+        },
+        {
+          "name": "mail",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "attribute.name": "mail",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "mail",
+            "user.attribute": "email"
+          }
+        },
+        {
+          "name": "roles",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "attribute.name": "roles",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "roles",
+            "single": "false",
+            "user.attribute": "roles"
+          }
+        },
+        {
+          "name": "bureauIGC",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "attribute.name": "bureauIGC",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "bureauIGC",
+            "single": "true",
+            "user.attribute": "bureauIGC"
+          }
+        },
+        {
+          "name": "affectationOp2",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "attribute.name": "affectationOp2",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "affectationOp2",
+            "single": "true",
+            "user.attribute": "affectationOp2"
+          }
+        },
+        {
+          "name": "affectationOp3",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "attribute.name": "affectationOp3",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "affectationOp3",
+            "single": "true",
+            "user.attribute": "affectationOp3"
+          }
+        },
+        {
+          "name": "affectationOp4",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "attribute.name": "affectationOp4",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "affectationOp4",
+            "single": "true",
+            "user.attribute": "affectationOp4"
+          }
+        }
+      ]
+    }
+  ]
+}
