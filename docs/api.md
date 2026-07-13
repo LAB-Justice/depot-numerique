@@ -3,6 +3,32 @@
 L'API est construite avec NestJS. Son socle fournit un versionnement explicite, une validation
 globale, des logs structurés, des contrôles de santé et une documentation OpenAPI.
 
+## Organisation du code
+
+```text
+apps/api/src/
+  main.ts                     # Création et démarrage de l'application NestJS
+  app.module.ts               # Module racine et configuration globale
+  app.controller.ts           # Route technique versionnée de base
+  app.service.ts              # Service associé à la route de base
+  bootstrap/
+    configure-app.ts          # CORS, Helmet, versionnement et validation HTTP
+    configure-swagger.ts      # Configuration OpenAPI
+  config/
+    environment.schema.ts     # Validation des variables d'environnement
+    logger.config.ts          # Configuration des logs Pino
+  core/
+    database/                 # Client Prisma et cycle de vie PostgreSQL
+    redis/                    # Client Redis partagé par l'API
+    storage/                  # Client MinIO et bucket des documents bruts
+    health/                   # Liveness, readiness et indicateurs techniques
+```
+
+`bootstrap` regroupe la configuration appliquée au démarrage HTTP, tandis que `config` contient la
+validation de l'environnement et la configuration du logger. `core` rassemble les composants
+techniques transversaux utilisés par l'API. Les futurs modules fonctionnels seront ajoutés
+séparément, sans transformer `core` en dossier métier.
+
 ## Adressage et versionnement
 
 Toutes les routes applicatives utilisent le préfixe `/api` et déclarent explicitement leur version.

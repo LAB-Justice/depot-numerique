@@ -19,9 +19,10 @@ packages/database/
 ```
 
 Le package expose une fabrique afin que chaque processus crée et maîtrise le cycle de vie de son
-propre client. Dans l'API NestJS, `DatabaseService` conserve une seule instance par processus et la
-déconnecte lors de l'arrêt de l'application. Le client généré et le dossier `dist` ne sont pas
-commités. Ils sont reconstruits avec `pnpm database:generate` et `pnpm database:build`.
+propre client. Dans l'API NestJS, `apps/api/src/core/database/database.service.ts` conserve une seule
+instance par processus et la déconnecte lors de l'arrêt de l'application. Le client généré et le
+dossier `dist` ne sont pas commités. Ils sont reconstruits avec `pnpm database:generate` et
+`pnpm database:build`.
 
 ## Configuration locale
 
