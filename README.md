@@ -9,6 +9,7 @@ Le projet est initialisé en monorepo avec `pnpm` et `Turbo`. Il contient actuel
 - `apps/worker` : workers BullMQ ;
 - `packages/database` : schéma, migrations, seed et client Prisma partagés ;
 - `docs` : documentation VitePress ;
+- `sso` : simulateur SSO local avec Keycloak SAML et OpenLDAP ;
 - `turbo.json` : configuration des tâches monorepo ;
 - `pnpm-workspace.yaml` : déclaration des workspaces pnpm.
 
@@ -67,22 +68,29 @@ cp packages/database/.env.example packages/database/.env
 cp apps/worker/.env.example apps/worker/.env
 ```
 
-Le fichier racine configure PostgreSQL, Redis, MinIO et le simulateur SSO Keycloak. Le fichier de
-l'API configure son exécution ainsi que ses connexions à PostgreSQL, Redis et MinIO. Le fichier de
-Prisma fournit `DATABASE_URL` aux commandes Prisma, et celui du worker définit `WORKER_PORT` et
-`NODE_ENV`. Ces fichiers ne doivent pas être commités.
+Le fichier racine configure PostgreSQL, Redis, MinIO et le simulateur SSO local
+Keycloak/OpenLDAP/phpLDAPadmin. Le fichier de l'API définit `API_PORT` et `NODE_ENV`, celui de Prisma
+fournit `DATABASE_URL`, et celui du worker définit `WORKER_PORT` et `NODE_ENV`. Ces fichiers ne
+doivent pas être commités.
 
 ## Lancer le projet
 
-Pour démarrer les services Docker, attendre leur disponibilité, puis lancer toutes les tâches de
-développement déclarées dans les workspaces :
+Le développement local utilise deux terminaux afin de séparer les services Docker des applications.
+
+Dans un premier terminal, démarrer les services techniques et attendre leur disponibilité :
+
+```bash
+pnpm infra:dev
+```
+
+Dans un second terminal, lancer toutes les tâches de développement déclarées dans les workspaces :
 
 ```bash
 pnpm dev
 ```
 
-Cette commande lance PostgreSQL, Redis, MinIO et Keycloak, puis Turbo démarre l'API, le frontend, le
-worker et la documentation.
+`pnpm infra:dev` lance PostgreSQL, Redis, MinIO, OpenLDAP, phpLDAPadmin et Keycloak avec Docker
+Compose. `pnpm dev` lance l'API, le frontend, le worker et la documentation avec Turbo.
 
 Pour lancer l'API NestJS, le frontend Angular et le worker BullMQ sans démarrer l'infrastructure
 Docker ni la documentation :
@@ -97,9 +105,24 @@ Services exposés en développement :
 - Swagger : `http://localhost:3000/api/docs`
 - Santé de l'API : `http://localhost:3000/api/health/live` et `http://localhost:3000/api/health/ready`
 - Frontend Angular : `http://localhost:4200`
-- Documentation VitePress : `http://localhost:5173/depot-numerique/`
-- Administration Keycloak : `http://localhost:8080/admin/master/console/`
-- Compte utilisateur Keycloak : `http://localhost:8080/realms/depot-numerique/account/`
+
+## SSO Local
+
+Le projet utilise en développement un simulateur SSO SAML local. OpenLDAP contient l'annuaire de test
+avec les utilisateurs, leurs rôles et leur rattachement métier (`bureauIGC`). Keycloak est configuré
+comme fournisseur d'identité SAML et expose ces attributs à l'application.
+
+Les rôles applicatifs simulés sont :
+
+- `DEPOT_NUMERIQUE:ADMINISTRATEUR_GENERAL`
+- `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL`
+- `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL`
+- `DEPOT_NUMERIQUE:AGENT`
+
+L'arborescence LDAP locale simule notamment la DSJ, les cours d'appel, les tribunaux judiciaires, les
+CPH au niveau des cours d'appel et les tribunaux de proximité sous leur tribunal judiciaire. Les
+comptes de test et les attributs SAML exposés sont documentés dans
+[docs/keycloak.md](docs/keycloak.md), avec le détail du simulateur dans [sso/README.md](sso/README.md).
 
 ## Lancer Un Service Applicatif
 
@@ -316,6 +339,7 @@ pnpm database:check:fix
 pnpm database:typecheck
 pnpm database:generate
 pnpm database:validate
+pnpm database:migrate:create --name description
 pnpm database:migrate:dev --name description
 pnpm database:migrate:deploy
 pnpm database:migrate:status
@@ -323,14 +347,31 @@ pnpm database:seed
 pnpm database:studio
 ```
 
+Le script `pnpm database:studio` force Prisma Studio sur `http://localhost:5555`.
+
 Le workspace database n'a pas encore de commande de test dédiée.
 
 Les migrations créées en développement sont versionnées dans
 `packages/database/prisma/migrations`. En recette et en production, la CI/CD applique ces mêmes
 migrations avec `pnpm database:migrate:deploy` sur la base de l'environnement concerné.
+`pnpm database:migrate:create --name description` génère et permet de relire le SQL sans l'appliquer.
 
-Le seed initial crée les juridictions `TJ-LILLE`, `TJ-ARRAS`, `TJ-DOUAI` et `TJ-CAMBRAI`, chacune
-avec les services `AUD`, `BAJ`, `BOG`, `JAF` et `JAP`. Il est destiné au développement et aux tests.
+Le modèle Prisma représente les utilisateurs SSO et les structures judiciaires hiérarchisées :
+la cour d'appel, ses juridictions et leurs éventuelles sous-juridictions. Les services sont rattachés
+à une structure et sont créés localement par les administrateurs autorisés. Un utilisateur distingue
+sa structure de travail (`workStructureId`) de son éventuel périmètre d'administration
+(`adminStructureId`) ; son service est rattaché à sa structure de travail. Chaque document référence
+obligatoirement son utilisateur créateur. Les comptes sont désactivés plutôt que supprimés afin de
+conserver cet historique. Le périmètre d'administration est déduit du rôle et du niveau de la
+structure administrée : un administrateur régional voit la cour d'appel et ses descendants, tandis
+qu'un administrateur local placé sur une cour d'appel ne gère que les services de cette cour.
+
+Le seed crée la cour d'appel de Douai, les tribunaux judiciaires de Lille, Arras et Douai, ainsi que
+le tribunal de proximité de Tourcoing rattaché à Lille. La cour d'appel et les trois tribunaux
+judiciaires reçoivent les services `baj`, `bog`, `jaf` et `jap`, identifiés par leur slug et
+accompagnés d'un libellé complet. Les structures utilisent des codes SSO uniques sur huit chiffres,
+par exemple `00000001` pour la cour et `00000002` pour le tribunal de Lille. Ce jeu de données est
+destiné au développement et aux tests.
 
 La documentation détaillée se trouve dans [`docs/database.md`](docs/database.md).
 
@@ -378,7 +419,9 @@ Services disponibles :
 - PostgreSQL : base de données métier ;
 - Redis : cache et backend BullMQ ;
 - MinIO : stockage des documents ;
-- Keycloak : simulation locale du SSO et de ses claims ;
+- OpenLDAP : annuaire local simulant les utilisateurs et rattachements SRJ ;
+- phpLDAPadmin : interface graphique locale pour inspecter l'annuaire LDAP ;
+- Keycloak : fournisseur d'identité SAML local branché sur OpenLDAP ;
 - plus tard, images séparées pour l'API, le frontend et les workers.
 
 Les versions d'images sont volontairement fixées dans `docker-compose.yml`. Ne pas utiliser `latest` pour les services d'infrastructure.
@@ -388,6 +431,8 @@ Versions locales actuelles :
 - PostgreSQL : `postgres:17.10-bookworm`
 - Redis : `redis:7.4.9-bookworm`
 - MinIO : `minio/minio:RELEASE.2025-09-07T16-13-09Z`
+- OpenLDAP : `osixia/openldap:1.5.0`
+- phpLDAPadmin : `osixia/phpldapadmin:0.9.0`
 - Keycloak : `quay.io/keycloak/keycloak:26.6.4`
 
 Dependabot surveille les mises à jour Docker Compose, GitHub Actions et npm/pnpm via `.github/dependabot.yml`.
@@ -400,10 +445,10 @@ cp .env.example .env
 
 Le fichier `.env` ne doit pas être commit. Il est ignoré par Git.
 
-Lancer les services :
+Lancer tous les services techniques :
 
 ```bash
-docker compose up -d
+pnpm infra:dev
 ```
 
 Lancer uniquement PostgreSQL :
@@ -430,16 +475,25 @@ Lancer uniquement Keycloak et attendre sa disponibilité :
 docker compose up -d --wait keycloak
 ```
 
-Keycloak importe le realm `depot-numerique` depuis `keycloak/realm.json`. Après une modification de
-ce fichier, forcer la recréation du conteneur :
+Lancer uniquement l'annuaire LDAP et son interface graphique :
+
+```bash
+docker compose up -d --wait openldap phpldapadmin
+```
+
+Keycloak importe le realm `depot-numerique` depuis `sso/keycloak/realm.json` et lit les utilisateurs
+dans OpenLDAP. Les données LDAP locales sont initialisées depuis `sso/openldap/schema` et
+`sso/openldap/ldif`. Après une modification du realm, forcer la recréation du conteneur :
 
 ```bash
 docker compose up -d --force-recreate --wait keycloak
 ```
 
-Cette instance utilise `start-dev`, une base H2 éphémère et des comptes publics de démonstration. Elle
-est strictement réservée au développement local. Consulter la documentation
-[SSO local avec Keycloak](docs/keycloak.md) pour les comptes, rôles, claims et procédures de test.
+Après une modification du schéma ou du LDIF OpenLDAP, il faut recréer les volumes OpenLDAP locaux pour
+réimporter l'annuaire. Cette instance utilise `start-dev`, HTTP, une base H2 éphémère et des mots de
+passe publics de démonstration. Elle est strictement réservée au développement local. Consulter la
+documentation [SSO SAML local](docs/keycloak.md) pour les comptes, rôles, attributs SAML et
+procédures de test.
 
 Vérifier leur état :
 
@@ -475,6 +529,8 @@ Accès locaux par défaut :
 - MinIO API : `http://localhost:9000`
 - MinIO Console : `http://localhost:9001`
 - Keycloak : `http://localhost:8080`
+- OpenLDAP : `ldap://localhost:389`
+- phpLDAPAdmin : `http://localhost:8081`
 
 Les identifiants locaux sont définis dans `.env`.
 
@@ -516,7 +572,7 @@ packages/
 - ORM : `Prisma`
 - Queue et cache : `BullMQ`, `Redis`
 - Stockage fichiers : `MinIO`
-- SSO local : `Keycloak`
+- SSO local : `Keycloak`, `OpenLDAP`, `phpLDAPAdmin`
 - Automatisation web : `Playwright`
 - Documentation API : `Swagger / OpenAPI`
 - Conteneurisation : `Docker`, `Docker Compose`

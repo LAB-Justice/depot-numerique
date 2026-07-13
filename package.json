@@ -73,6 +73,7 @@
     "worker:test": "turbo test --filter worker",
     "database:generate": "pnpm --filter @depot-numerique/database generate",
     "database:validate": "pnpm --filter @depot-numerique/database validate",
+    "database:migrate:create": "pnpm --filter @depot-numerique/database migrate:create",
     "database:migrate:dev": "pnpm --filter @depot-numerique/database migrate:dev",
     "database:migrate:deploy": "pnpm --filter @depot-numerique/database migrate:deploy",
     "database:migrate:status": "pnpm --filter @depot-numerique/database migrate:status",

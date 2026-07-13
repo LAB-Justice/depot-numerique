@@ -40,20 +40,72 @@ DATABASE_URL=postgresql://root:password@localhost:5432/depot_numerique?schema=pu
 Le fichier `packages/database/.env` est réservé au développement local et ne doit jamais être
 commité. En recette et en production, `DATABASE_URL` est injectée par l'orchestrateur ou Vault.
 
-## Modèle initial
+## Modèle de données
 
-Le schéma initial contient :
+Le schéma contient :
 
-- `Jurisdiction` : juridiction connue du SSO et activée dans l'application ;
-- `Service` : service rattaché à une juridiction ;
-- `Document` : dépôt métier, type `LS` ou `LR`, statut et référence pseudonymisée du déposant ;
+- `Structure` : structure judiciaire connue du SSO, hiérarchisée et activée dans l'application ;
+- `User` : utilisateur SSO pseudonymisé, avec son état actif, son rôle, sa structure de travail,
+  son éventuel périmètre d'administration et son éventuel service ;
+- `Service` : service créé dans l'application et rattaché à une structure ;
+- `Document` : dépôt métier, type `LS` ou `LR`, statut et utilisateur créateur ;
 - `DocumentFile` : référence d'un fichier MinIO avec bucket, clé objet, taille et checksum SHA-256.
 
-Un document référence un service. Sa juridiction est obtenue par la relation
-`Document -> Service -> Jurisdiction`, sans dupliquer `jurisdictionId` dans `Document`.
+Une structure possède un niveau hiérarchique :
 
-PostgreSQL ne contient pas les fichiers. `DocumentFile` conserve uniquement `bucket` et
-`objectKey`, utilisés par l'API pour accéder à l'objet MinIO.
+- `REGIONAL` pour une cour d'appel ;
+- `JURISDICTION` pour une structure directement rattachée à une cour ;
+- `SUB_JURISDICTION` pour une structure rattachée à une juridiction.
+
+La relation auto-référencée `Structure.parent` représente cette hiérarchie. Un service référence une
+structure et est identifié en son sein par son `slug`, tandis que `displayName` porte son libellé
+affiché. Il ne possède pas de code SSO, car il est créé et administré dans l'application.
+
+Un utilisateur possède deux rattachements distincts :
+
+- `workStructureId` : structure opérationnelle de l'utilisateur, utilisée pour son service et ses
+  dépôts ;
+- `adminStructureId` : périmètre administré, utilisé par les écrans d'administration.
+
+Ces deux valeurs peuvent être différentes. Par exemple, un administrateur régional travaillant au
+tribunal judiciaire de Lille peut avoir `workStructureId` sur le TJ de Lille et `adminStructureId`
+sur la cour d'appel de Douai. Les administrateurs généraux n'ont pas besoin de périmètre
+`adminStructureId`, car leur rôle donne un accès global. Les agents et les administrateurs qui
+déposent des documents utilisent leur `workStructureId` et leur `serviceId`.
+
+Un utilisateur peut être affecté à un service de sa structure de travail. La cohérence entre
+`User.workStructureId` et la structure de `User.serviceId` est contrôlée par la logique applicative
+lors de l'affectation.
+
+Le périmètre d'administration est déduit du rôle et du niveau de `adminStructureId`, sans champ de
+scope dédié :
+
+- `ADMINISTRATEUR_GENERAL` : accès global, sans `adminStructureId` obligatoire ;
+- `ADMINISTRATEUR_REGIONAL` : `adminStructureId` doit viser une structure `REGIONAL` et donne accès
+  à cette cour d'appel et à tous ses descendants ;
+- `ADMINISTRATEUR_LOCAL` avec une structure `REGIONAL` : accès limité à cette cour d'appel et à ses
+  services, sans accès aux juridictions rattachées ;
+- `ADMINISTRATEUR_LOCAL` avec une structure `JURISDICTION` : accès à cette juridiction et à ses
+  sous-juridictions ;
+- `ADMINISTRATEUR_LOCAL` avec une structure `SUB_JURISDICTION` : accès limité à cette
+  sous-juridiction.
+
+Cette règle permet de gérer un administrateur local de cour d'appel chargé uniquement des services de
+la cour, sans lui donner le périmètre complet d'un administrateur régional.
+
+Un document référence obligatoirement un service et l'utilisateur qui l'a créé. Sa structure est
+donc obtenue par `Document -> Service -> Structure`. La suppression physique d'un utilisateur ayant
+créé un document est interdite afin de préserver l'identité du déposant. `User.isActive` permet de
+révoquer son accès sans supprimer son historique.
+
+L'identifiant IGC n'est jamais enregistré en clair : seul son HMAC-SHA-256 est conservé dans
+`User.igcidHash`. Le DN LDAP `bureauIGC` n'est pas stocké ; il sert uniquement à calculer
+`workStructureId` et `adminStructureId` lors de la connexion. Le rôle, les rattachements calculés et
+`lastLoginAt` sont synchronisés à chaque connexion. Un utilisateur désactivé doit rester bloqué tant
+qu'une décision métier explicite ne l'a pas réactivé.
+
+PostgreSQL ne contient pas les fichiers. `DocumentFile` conserve uniquement `bucket` et `objectKey`,
+utilisés par l'API pour accéder à l'objet MinIO.
 
 ## Commandes
 
@@ -69,12 +121,15 @@ pnpm database:check:fix
 pnpm database:typecheck
 pnpm database:generate
 pnpm database:validate
+pnpm database:migrate:create --name description
 pnpm database:migrate:dev --name description
 pnpm database:migrate:deploy
 pnpm database:migrate:status
 pnpm database:seed
 pnpm database:studio
 ```
+
+Le script `pnpm database:studio` force Prisma Studio sur `http://localhost:5555`.
 
 Le workspace database n'a pas encore de commande de test dédiée.
 
@@ -83,10 +138,11 @@ Le workspace database n'a pas encore de commande de test dédiée.
 Une migration est un ensemble de fichiers SQL versionnés. Elle ne copie pas la base locale et ne
 transporte aucune donnée de développement.
 
-Après une modification de `schema.prisma`, créer et appliquer une migration sur PostgreSQL local :
+Après une modification de `schema.prisma`, générer une migration sans l'appliquer sur PostgreSQL
+local :
 
 ```bash
-pnpm database:migrate:dev --name description
+pnpm database:migrate:create --name description
 ```
 
 La commande :
@@ -94,14 +150,14 @@ La commande :
 1. compare le schéma Prisma à l'état de la base locale ;
 2. crée un dossier dans `prisma/migrations` ;
 3. écrit le SQL correspondant ;
-4. applique ce SQL à la base locale ;
-5. enregistre la migration dans la table `_prisma_migrations`.
+4. s'arrête pour permettre la relecture du SQL sans modifier le schéma applicatif de la base.
 
 Le dossier de migration doit être relu puis commité avec le changement de schéma. Il constitue la
 procédure reproductible qui sera appliquée aux autres environnements.
 
-En recette et en production, ne jamais utiliser `migrate dev`. La CI/CD applique uniquement les
-migrations déjà versionnées :
+Après relecture, `pnpm database:migrate:dev` applique localement les migrations en attente. Cette
+commande ne doit jamais être utilisée en recette ou en production, où la CI/CD applique uniquement
+les migrations déjà versionnées :
 
 ```bash
 pnpm database:migrate:deploy
@@ -116,14 +172,17 @@ des nouvelles instances applicatives.
 
 ## Seed de développement
 
-Le seed crée quatre juridictions :
+Le seed crée cinq structures hiérarchisées avec des codes SSO uniques sur huit chiffres :
 
-- `TJ-LILLE` ;
-- `TJ-ARRAS` ;
-- `TJ-DOUAI` ;
-- `TJ-CAMBRAI`.
+- `00000001`, cour d'appel de Douai de niveau `REGIONAL` ;
+- `00000002`, `00000003` et `00000004`, tribunaux judiciaires de Lille, Arras et Douai de niveau
+  `JURISDICTION` et rattachés à `00000001` ;
+- `00000005`, tribunal de proximité de Tourcoing de niveau `SUB_JURISDICTION` et rattaché à
+  `00000002`.
 
-Chaque juridiction reçoit les services `AUD`, `BAJ`, `BOG`, `JAF` et `JAP`.
+La cour d'appel et chaque structure de niveau `JURISDICTION` reçoivent les services `baj`, `bog`,
+`jaf` et `jap`. Le slug sert d'identifiant stable dans la structure et `displayName` contient le
+libellé complet.
 
 Avec Prisma 7, le seed est explicite : il n'est pas exécuté automatiquement par `migrate dev` ou
 `migrate reset`. Ces données sont prévues pour le développement et les tests ; elles ne doivent pas
