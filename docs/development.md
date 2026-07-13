@@ -14,6 +14,7 @@ apps/
 docs/       # Documentation VitePress
 packages/
   database/ # Schéma, migrations, seed et client Prisma
+sso/        # Simulateur SSO local Keycloak SAML + OpenLDAP
 ```
 
 Applications disponibles :
@@ -52,7 +53,7 @@ cp apps/worker/.env.example apps/worker/.env
 ```
 
 Le `.env` racine configure Docker Compose et expose les variables partagées (Redis, Postgres, MinIO,
-Keycloak).
+OpenLDAP, phpLDAPadmin, Keycloak).
 Le `.env` du workspace API configure son port (`API_PORT`) et son mode d'exécution (`NODE_ENV`). Le
 `.env` du workspace database contient uniquement `DATABASE_URL` pour les commandes Prisma. Le `.env`
 du workspace worker contient son port (`WORKER_PORT`) et son mode d'exécution (`NODE_ENV`). Aucun de
@@ -68,15 +69,21 @@ pnpm prepare
 
 Les commandes de développement suivent la même convention que les autres tâches du monorepo :
 
-- `pnpm dev` démarre PostgreSQL, Redis, MinIO et Keycloak avec Docker Compose, attend leur
-  disponibilité, puis lance l'API, le frontend, le worker et la documentation.
+- `pnpm dev` lance l'API, le frontend, le worker et la documentation avec Turbo.
 - `pnpm infra:dev` démarre uniquement les services techniques Docker.
 - `pnpm apps:dev` lance uniquement les applications métier : `api`, `web` et `worker`.
 - `pnpm <workspace>:dev` lance un seul workspace (`api:dev`, `web:dev`, `worker:dev`).
 
 Les serveurs `dev` sont déclarés comme persistants dans Turbo : ils restent actifs tant que le terminal est ouvert et ne sont pas mis en cache.
 
-Lancer tout l'environnement local :
+Le développement local utilise deux terminaux. Dans le premier, démarrer l'infrastructure et attendre
+que les conteneurs soient disponibles :
+
+```bash
+pnpm infra:dev
+```
+
+Dans le second, lancer tous les workspaces en développement :
 
 ```bash
 pnpm dev
@@ -123,7 +130,7 @@ URLs locales :
 
 ## Services Docker
 
-Les services techniques locaux sont lancés automatiquement par `pnpm dev`. Pour les démarrer seuls :
+Les services techniques locaux sont indépendants des processus applicatifs. Les démarrer avec :
 
 ```bash
 pnpm infra:dev
@@ -135,21 +142,28 @@ Services disponibles :
 - Redis : `localhost:6379`
 - MinIO API : `http://localhost:9000`
 - MinIO Console : `http://localhost:9001`
+- OpenLDAP : `ldap://localhost:389`
+- phpLDAPadmin : `http://localhost:8081`
 - Keycloak : `http://localhost:8080`
+- Administration Keycloak : `http://localhost:8080/admin/master/console/`
+- Metadata SAML Keycloak : `http://localhost:8080/realms/depot-numerique/protocol/saml/descriptor`
 
-Keycloak simule uniquement le SSO en développement. Démarrer ce service seul :
+Keycloak simule le fournisseur d'identité SAML et lit les utilisateurs dans OpenLDAP. Démarrer
+uniquement les services SSO :
 
 ```bash
-docker compose up -d --wait keycloak
+docker compose up -d --wait openldap keycloak phpldapadmin
 ```
 
-Après une modification de `keycloak/realm.json`, recréer le conteneur pour réimporter le realm :
+Après une modification de `sso/keycloak/realm.json`, recréer le conteneur pour réimporter le realm :
 
 ```bash
 docker compose up -d --force-recreate --wait keycloak
 ```
 
-Consulter [SSO local avec Keycloak](./keycloak.md) pour les comptes de démonstration, les claims, les
+Après une modification de `sso/openldap/schema` ou `sso/openldap/ldif`, recréer les volumes
+OpenLDAP locaux pour rejouer l'initialisation de l'annuaire. Consulter
+[SSO SAML local](./keycloak.md) pour les comptes de démonstration, les attributs SAML, les
 vérifications et les limites de cette configuration.
 
 Arrêter les services :
@@ -164,8 +178,9 @@ Supprimer aussi les volumes locaux :
 docker compose down -v
 ```
 
-Attention : `docker compose down -v` supprime les données locales PostgreSQL, Redis et MinIO. Les
-données Keycloak sont éphémères et le realm est recréé depuis `keycloak/realm.json`.
+Attention : `docker compose down -v` supprime les données locales PostgreSQL, Redis, MinIO et
+OpenLDAP. Les données Keycloak sont éphémères et le realm est recréé depuis
+`sso/keycloak/realm.json`.
 
 ## Qualité
 
