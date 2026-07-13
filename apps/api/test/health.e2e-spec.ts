@@ -5,8 +5,8 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { configureApp } from './../src/bootstrap/configure-app';
-import { MinioHealthIndicator } from './../src/health/minio.health-indicator';
-import { RedisHealthIndicator } from './../src/health/redis.health-indicator';
+import { MinioHealthIndicator } from './../src/core/health/minio.health-indicator';
+import { RedisHealthIndicator } from './../src/core/health/redis.health-indicator';
 
 const prismaHealthIndicator = {
   pingCheck: jest.fn(),
