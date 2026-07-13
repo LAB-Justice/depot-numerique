@@ -334,6 +334,7 @@ pnpm database:check:fix
 pnpm database:typecheck
 pnpm database:generate
 pnpm database:validate
+pnpm database:migrate:create --name description
 pnpm database:migrate:dev --name description
 pnpm database:migrate:deploy
 pnpm database:migrate:status
@@ -341,14 +342,31 @@ pnpm database:seed
 pnpm database:studio
 ```
 
+Le script `pnpm database:studio` force Prisma Studio sur `http://localhost:5555`.
+
 Le workspace database n'a pas encore de commande de test dédiée.
 
 Les migrations créées en développement sont versionnées dans
 `packages/database/prisma/migrations`. En recette et en production, la CI/CD applique ces mêmes
 migrations avec `pnpm database:migrate:deploy` sur la base de l'environnement concerné.
+`pnpm database:migrate:create --name description` génère et permet de relire le SQL sans l'appliquer.
 
-Le seed initial crée les juridictions `TJ-LILLE`, `TJ-ARRAS`, `TJ-DOUAI` et `TJ-CAMBRAI`, chacune
-avec les services `AUD`, `BAJ`, `BOG`, `JAF` et `JAP`. Il est destiné au développement et aux tests.
+Le modèle Prisma représente les utilisateurs SSO et les structures judiciaires hiérarchisées :
+la cour d'appel, ses juridictions et leurs éventuelles sous-juridictions. Les services sont rattachés
+à une structure et sont créés localement par les administrateurs autorisés. Un utilisateur distingue
+sa structure de travail (`workStructureId`) de son éventuel périmètre d'administration
+(`adminStructureId`) ; son service est rattaché à sa structure de travail. Chaque document référence
+obligatoirement son utilisateur créateur. Les comptes sont désactivés plutôt que supprimés afin de
+conserver cet historique. Le périmètre d'administration est déduit du rôle et du niveau de la
+structure administrée : un administrateur régional voit la cour d'appel et ses descendants, tandis
+qu'un administrateur local placé sur une cour d'appel ne gère que les services de cette cour.
+
+Le seed crée la cour d'appel de Douai, les tribunaux judiciaires de Lille, Arras et Douai, ainsi que
+le tribunal de proximité de Tourcoing rattaché à Lille. La cour d'appel et les trois tribunaux
+judiciaires reçoivent les services `baj`, `bog`, `jaf` et `jap`, identifiés par leur slug et
+accompagnés d'un libellé complet. Les structures utilisent des codes SSO uniques sur huit chiffres,
+par exemple `00000001` pour la cour et `00000002` pour le tribunal de Lille. Ce jeu de données est
+destiné au développement et aux tests.
 
 La documentation détaillée se trouve dans [`docs/database.md`](docs/database.md).
 

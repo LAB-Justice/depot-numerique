@@ -22,6 +22,56 @@ La stack SSO locale fournit :
 - un client SAML `depot-numerique` ;
 - des mappers SAML alignés sur les attributs transmis par le SSO intranet.
 
+Keycloak conserve ses comptes de démonstration dans son stockage interne local. La table `User` de
+l'application est distincte : elle conserve l'identité pseudonymisée et les informations métier
+nécessaires, sans enregistrer l'identifiant externe brut.
+
+## Fichiers de configuration
+
+- `docker-compose.yml` démarre Keycloak et monte le fichier du realm en lecture seule ;
+- `keycloak/realm.json` contient le realm, le client, les rôles, les mappers et les comptes de test ;
+- `.env` contient les identifiants locaux du compte administrateur ;
+- `.env.example` documente les variables attendues sans fournir de secret de production.
+
+Le profil utilisateur Keycloak est déclaré dans `realm.json` avec le provider
+`declarative-user-profile`. Cette déclaration est nécessaire avec Keycloak 26 pour conserver et
+exposer les attributs personnalisés. La valeur `kc.user.profile.config` est un JSON sérialisé dans le
+format natif d'import/export de Keycloak.
+
+## Variables d'environnement
+
+Créer le fichier local si nécessaire :
+
+```bash
+cp .env.example .env
+```
+
+Variables utilisées :
+
+```dotenv
+KEYCLOAK_ADMIN_USERNAME=root
+KEYCLOAK_ADMIN_PASSWORD=password
+KEYCLOAK_PORT=8080
+```
+
+Le compte administrateur appartient au realm système `master`. Il est distinct des comptes métier du
+realm `depot-numerique`.
+
+## Démarrage et import
+
+Démarrer uniquement Keycloak et attendre son healthcheck :
+
+```bash
+docker compose up -d --wait keycloak
+```
+
+Vérifier son état et l'import :
+
+```bash
+docker compose ps keycloak
+docker compose logs keycloak
+```
+
 La chaîne simulée est :
 
 ```text
@@ -117,6 +167,42 @@ Les structures sont dans `ou=sites,dc=justice,dc=fr`.
       00000011  Conseil de prud'hommes d'Amiens
 ```
 
+## Accès graphiques
+
+- administration : `http://localhost:8080/admin/master/console/` ;
+- compte utilisateur : `http://localhost:8080/realms/depot-numerique/account/`.
+
+L'administration utilise les variables `KEYCLOAK_ADMIN_USERNAME` et
+`KEYCLOAK_ADMIN_PASSWORD`. Utiliser de préférence une fenêtre privée pour passer du compte
+administrateur à un compte métier sans réutiliser une session SSO existante.
+
+## Limites et cible de production
+
+Cette configuration ne reproduit que le contrat d'identité attendu par l'application. En production,
+les comptes, mots de passe, rôles et rattachements proviendront du SSO institutionnel ou de son
+annuaire. Le contrat exact des claims devra être validé avec son équipe avant l'intégration.
+
+La configuration locale ne fournit notamment pas :
+
+- TLS ni hostname de production ;
+- base Keycloak PostgreSQL persistante ;
+- haute disponibilité ;
+- fédération LDAP ou Identity Provider ;
+- MFA, protection contre les attaques ou politique de mot de passe institutionnelle ;
+- gestion des secrets dans Vault ;
+- compte administrateur permanent ;
+- supervision et audit de production.
+
+Le mode `start-dev`, le compte administrateur temporaire et les utilisateurs de démonstration doivent
+rester strictement locaux.
+
+## Dépannage
+
+Si une modification du realm n'apparaît pas, forcer la recréation du conteneur :
+
+```bash
+docker compose up -d --force-recreate --wait keycloak
+```
 Chaque structure utilise son identifiant technique dans `ou` et son libellé lisible dans
 `description`.
 
