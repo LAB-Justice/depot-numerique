@@ -15,7 +15,9 @@ describe('Request ID (e2e)', () => {
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication({
+      bodyParser: false,
+    });
     configureApp(app);
 
     await app.init();
