@@ -69,9 +69,10 @@ cp apps/worker/.env.example apps/worker/.env
 ```
 
 Le fichier racine configure PostgreSQL, Redis, MinIO et le simulateur SSO local
-Keycloak/OpenLDAP/phpLDAPadmin. Le fichier de l'API définit `API_PORT` et `NODE_ENV`, celui de Prisma
-fournit `DATABASE_URL`, et celui du worker définit `WORKER_PORT` et `NODE_ENV`. Ces fichiers ne
-doivent pas être commités.
+Keycloak/OpenLDAP/phpLDAPadmin. Le fichier de l'API définit notamment son port, la connexion aux
+services techniques et les paramètres Better Auth (`BETTER_AUTH_URL`, `BETTER_AUTH_WEB_ORIGIN` et
+`BETTER_AUTH_SECRET`). Celui de Prisma fournit `DATABASE_URL`, et celui du worker définit
+`WORKER_PORT` et `NODE_ENV`. Ces fichiers ne doivent pas être commités.
 
 ## Lancer le projet
 
@@ -105,6 +106,10 @@ Services exposés en développement :
 - Swagger : `http://localhost:3000/api/docs`
 - Santé de l'API : `http://localhost:3000/api/health/live` et `http://localhost:3000/api/health/ready`
 - Frontend Angular : `http://localhost:4200`
+
+En développement, le navigateur utilise l'origine publique du frontend (`http://localhost:4200`).
+Le proxy Angular transmet `/api/**` à l'API sur le port `3000`, ce qui permet aux cookies de session
+de rester sur une même origine du point de vue du navigateur.
 
 ## SSO Local
 
@@ -365,6 +370,12 @@ obligatoirement son utilisateur créateur. Les comptes sont désactivés plutôt
 conserver cet historique. Le périmètre d'administration est déduit du rôle et du niveau de la
 structure administrée : un administrateur régional voit la cour d'appel et ses descendants, tandis
 qu'un administrateur local placé sur une cour d'appel ne gère que les services de cette cour.
+
+Les tables `AuthIdentity`, `AuthSession`, `AuthAccount` et `AuthVerification` sont réservées à Better
+Auth. `AuthIdentity` porte l'identité technique d'authentification et est reliée en un-à-un au profil
+métier `User`. La reconnexion SSO doit retrouver le profil avec l'identifiant annuaire stable
+`User.igcId`, jamais avec l'adresse électronique, qui peut changer. Cet identifiant n'est pas hashé ;
+il doit en revanche être traité comme une donnée interne et ne jamais être journalisé inutilement.
 
 Le seed crée la cour d'appel de Douai, les tribunaux judiciaires de Lille, Arras et Douai, ainsi que
 le tribunal de proximité de Tourcoing rattaché à Lille. La cour d'appel et les trois tribunaux

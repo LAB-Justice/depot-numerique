@@ -22,9 +22,11 @@ La stack SSO locale fournit :
 - un client SAML `depot-numerique` ;
 - des mappers SAML alignés sur les attributs transmis par le SSO intranet.
 
-Keycloak conserve ses comptes de démonstration dans son stockage interne local. La table `User` de
-l'application est distincte : elle conserve l'identité pseudonymisée et les informations métier
-nécessaires, sans enregistrer l'identifiant externe brut.
+Keycloak conserve ses comptes de démonstration dans son stockage interne local. Dans l'application,
+`AuthIdentity` porte l'identité technique Better Auth et `User` porte le profil métier. Le champ
+`User.igcId` conserve l'identifiant annuaire stable en clair afin de retrouver le même profil même si
+le nom ou l'adresse électronique change. Cet identifiant interne ne doit pas être journalisé ou
+exposé sans nécessité métier.
 
 ## Fichiers de configuration
 
@@ -121,6 +123,8 @@ L'assertion SAML expose les attributs du formulaire d'interface LDAP/SSO :
 
 Les utilisateurs sont stockés dans `ou=people`, et leur rattachement métier est porté par
 `bureauIGC`. L'application ne doit donc pas déduire le rattachement depuis le DN utilisateur.
+L'attribut `igcid` est la clé de rapprochement stable du profil métier ; `mail` ne doit jamais être
+utilisé comme clé de reconnexion.
 
 ## Comptes De Test
 

@@ -17,6 +17,9 @@ apps/api/src/
   config/
     environment.schema.ts     # Validation des variables d'environnement
     logger.config.ts          # Configuration des logs Pino
+  auth/
+    auth.ts                   # Options Better Auth indépendantes de NestJS
+    auth.module.ts            # Intégration Better Auth/NestJS
   core/
     database/                 # Client Prisma et cycle de vie PostgreSQL
     redis/                    # Client Redis partagé par l'API
@@ -57,9 +60,25 @@ le processus de démarrer au lieu de provoquer une erreur tardive.
 | `MINIO_ENDPOINT`, `MINIO_PORT`, `MINIO_USE_SSL` | Adresse du stockage objet |
 | `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` | Identifiants MinIO de l'application |
 | `MINIO_RAW_BUCKET` | Bucket des documents bruts |
+| `BETTER_AUTH_URL` | Origine publique utilisée pour les routes Better Auth |
+| `BETTER_AUTH_WEB_ORIGIN` | Origine frontend autorisée par Better Auth |
+| `BETTER_AUTH_SECRET` | Secret Better Auth d'au moins 32 caractères |
 
 Les valeurs locales de référence se trouvent dans `apps/api/.env.example`. En production, les
 secrets doivent être injectés par l'orchestrateur ou Vault et non stockés dans un fichier versionné.
+
+## Authentification
+
+Better Auth est monté sous `/api/auth`. En développement, `BETTER_AUTH_URL` et
+`BETTER_AUTH_WEB_ORIGIN` valent `http://localhost:4200` : le navigateur utilise l'origine du
+frontend et le proxy Angular transmet `/api/**` à NestJS sur le port `3000`. Cette topologie prépare
+l'utilisation de cookies de session sur une origine commune ; la cible de production devra être une
+origine HTTPS servie par le reverse proxy.
+
+La connexion par email et mot de passe est désactivée. Les clés primaires des tables Better Auth
+sont des UUID ; l'option `advanced.database.generateId = 'uuid'` impose le même format aux
+identifiants créés par la bibliothèque. Le branchement de l'adapter Prisma et du plugin SSO constitue
+l'étape suivante.
 
 ## Validation HTTP
 
@@ -97,8 +116,8 @@ vert lorsque Docker ou les dépendances techniques sont arrêtés.
 - MinIO.
 
 Elle renvoie un statut HTTP `200` si tous les contrôles réussissent et `503` dès qu'une dépendance
-est indisponible. Keycloak n'est pas contrôlé ici : l'API n'en dépendra qu'au moment de valider les
-jetons reçus. Le frontend et les workers doivent fournir leur propre mécanisme de santé, sans être
+est indisponible. Keycloak n'est pas contrôlé ici : il sera sollicité uniquement pendant les flux
+SSO concernés. Le frontend et les workers doivent fournir leur propre mécanisme de santé, sans être
 ajoutés artificiellement à la readiness de l'API.
 
 ## Swagger

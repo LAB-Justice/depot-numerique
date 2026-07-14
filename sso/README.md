@@ -177,6 +177,11 @@ L'assertion SAML expose :
 Les attributs `nom`, `prenom` et `mail` proviennent respectivement des attributs LDAP standards `sn`,
 `givenName` et `mail`. Les autres attributs sont déclarés dans le schéma OpenLDAP local.
 
+L'application conserve `igcid` en clair dans `User.igcId`. Cette valeur stable permet de retrouver le
+même profil si le nom ou l'adresse électronique change ; l'email n'est donc pas une clé de
+reconnexion. Bien que l'identifiant soit accessible dans l'intranet, il reste une donnée interne qui
+ne doit pas être journalisée ou exposée sans nécessité métier.
+
 ## Interfaces
 
 - Keycloak : `http://localhost:8080`

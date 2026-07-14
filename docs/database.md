@@ -46,8 +46,12 @@ commité. En recette et en production, `DATABASE_URL` est injectée par l'orches
 Le schéma contient :
 
 - `Structure` : structure judiciaire connue du SSO, hiérarchisée et activée dans l'application ;
-- `User` : utilisateur SSO pseudonymisé, avec son état actif, son rôle, sa structure de travail,
-  son éventuel périmètre d'administration et son éventuel service ;
+- `AuthIdentity` : identité technique utilisée par Better Auth ;
+- `AuthSession` : session Better Auth persistée, avec son jeton et son expiration ;
+- `AuthAccount` : compte d'un fournisseur d'identité relié à une identité Better Auth ;
+- `AuthVerification` : valeur de vérification temporaire gérée par Better Auth ;
+- `User` : profil métier SSO, avec son `igcId` stable, son état actif, son rôle, sa structure de
+  travail, son éventuel périmètre d'administration et son éventuel service ;
 - `Service` : service créé dans l'application et rattaché à une structure ;
 - `Document` : dépôt métier, type `LS` ou `LR`, statut et utilisateur créateur ;
 - `DocumentFile` : référence d'un fichier MinIO avec bucket, clé objet, taille et checksum SHA-256.
@@ -99,11 +103,32 @@ donc obtenue par `Document -> Service -> Structure`. La suppression physique d'u
 créé un document est interdite afin de préserver l'identité du déposant. `User.isActive` permet de
 révoquer son accès sans supprimer son historique.
 
-L'identifiant IGC n'est jamais enregistré en clair : seul son HMAC-SHA-256 est conservé dans
-`User.igcidHash`. Le DN LDAP `bureauIGC` n'est pas stocké ; il sert uniquement à calculer
-`workStructureId` et `adminStructureId` lors de la connexion. Le rôle, les rattachements calculés et
-`lastLoginAt` sont synchronisés à chaque connexion. Un utilisateur désactivé doit rester bloqué tant
-qu'une décision métier explicite ne l'a pas réactivé.
+`User.igcId` conserve en clair l'identifiant stable fourni par l'annuaire. Il n'est pas hashé, car il
+sert à retrouver le même profil lorsque le nom ou l'adresse électronique de la personne change. Il
+reste une donnée interne : il ne doit pas être placé dans une URL publique, exposé sans besoin métier
+ou écrit dans les logs. Le DN LDAP `bureauIGC` n'est pas stocké ; il sert uniquement à calculer
+`workStructureId` et `adminStructureId` lors de la connexion. Le prénom, le nom, l'email, le rôle,
+les rattachements calculés et `lastLoginAt` sont synchronisés à chaque connexion. Un utilisateur
+désactivé doit rester bloqué tant qu'une décision métier explicite ne l'a pas réactivé.
+
+### Identité Better Auth et profil métier
+
+`AuthIdentity` et `User` ont des responsabilités distinctes. Better Auth gère l'identité technique,
+les comptes fournisseurs et les sessions ; `User` porte les autorisations et les données métier de
+l'application. La relation optionnelle et unique `User.authIdentityId` forme un lien un-à-un. Elle
+reste optionnelle pendant la transition et pour permettre au seed métier d'exister avant la première
+connexion SSO.
+
+`AuthSession.userId` et `AuthAccount.userId` sont des clés étrangères vers `AuthIdentity.id`. La
+suppression d'une identité supprime ses sessions et ses comptes techniques, tandis que la relation
+depuis `User` utilise `Restrict` afin d'éviter la perte accidentelle du lien avec l'historique métier.
+L'association au retour du SSO devra rechercher `User.igcId`, et non `User.email`. Le compte SSO
+Better Auth devra lui aussi utiliser l'identifiant fournisseur stable comme `accountId`.
+
+Toutes les clés primaires de ces tables sont des UUID PostgreSQL. Le schéma fournit
+`@default(uuid())` pour les créations Prisma et Better Auth est configuré avec
+`advanced.database.generateId = 'uuid'` pour ses propres créations. Cette option ne concerne pas
+`igcId`, qui reste la valeur stable reçue de l'annuaire.
 
 PostgreSQL ne contient pas les fichiers. `DocumentFile` conserve uniquement `bucket` et `objectKey`,
 utilisés par l'API pour accéder à l'objet MinIO.
@@ -193,6 +218,10 @@ Avec Prisma 7, le seed est explicite : il n'est pas exécuté automatiquement pa
 pnpm database:seed
 ```
 
+Les sept utilisateurs métier du seed emploient des `igcId` présents dans l'annuaire OpenLDAP local,
+afin de pouvoir être rapprochés des futures connexions SSO. Ils ne créent pas encore de lignes Better
+Auth : celles-ci seront créées au premier flux d'authentification une fois l'adapter Prisma branché.
+
 ## Règles de production
 
 - Une seule instance de `PrismaClient` est utilisée par processus API ou worker.
@@ -202,3 +231,4 @@ pnpm database:seed
 - Les connexions de production utilisent TLS selon la configuration de l'infrastructure.
 - `DATABASE_URL` provient de Vault ou d'un mécanisme de secrets de l'orchestrateur.
 - Les URLs de connexion, mots de passe et données documentaires ne sont jamais journalisés.
+- Les jetons de session, cookies, claims SSO et `igcId` ne sont jamais journalisés.

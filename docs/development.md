@@ -54,10 +54,12 @@ cp apps/worker/.env.example apps/worker/.env
 
 Le `.env` racine configure Docker Compose et expose les variables partagées (Redis, Postgres, MinIO,
 OpenLDAP, phpLDAPadmin, Keycloak).
-Le `.env` du workspace API configure son port (`API_PORT`) et son mode d'exécution (`NODE_ENV`). Le
-`.env` du workspace database contient uniquement `DATABASE_URL` pour les commandes Prisma. Le `.env`
-du workspace worker contient son port (`WORKER_PORT`) et son mode d'exécution (`NODE_ENV`). Aucun de
-ces fichiers ne doit être commité.
+Le `.env` du workspace API configure son port (`API_PORT`), son mode d'exécution (`NODE_ENV`), ses
+services techniques et Better Auth. En local, `BETTER_AUTH_URL` et `BETTER_AUTH_WEB_ORIGIN` valent
+`http://localhost:4200`, tandis que `BETTER_AUTH_SECRET` contient un secret local d'au moins 32
+caractères. Le `.env` du workspace database contient uniquement `DATABASE_URL` pour les commandes
+Prisma. Le `.env` du workspace worker contient son port (`WORKER_PORT`) et son mode d'exécution
+(`NODE_ENV`). Aucun de ces fichiers ne doit être commité.
 
 Installer les hooks Git locaux si nécessaire :
 
@@ -127,6 +129,11 @@ URLs locales :
 - Prisma Studio : `http://localhost:5555`
 - Administration Keycloak : `http://localhost:8080/admin/master/console/`
 - Compte utilisateur Keycloak : `http://localhost:8080/realms/depot-numerique/account/`
+
+Le frontend transmet `/api/**` à `http://localhost:3000` avec `apps/web/proxy.conf.json`. Le port
+`4200` est donc l'origine publique du navigateur en développement, et le port `3000` la cible
+interne du proxy. En production, le reverse proxy devra reproduire ce routage sous une origine HTTPS
+commune.
 
 ## Services Docker
 
@@ -332,6 +339,15 @@ pnpm database:migrate:status
 pnpm database:seed
 pnpm database:studio
 ```
+
+Le schéma Prisma est formaté séparément de Biome. Pour l'aligner manuellement :
+
+```bash
+pnpm --filter @depot-numerique/database exec prisma format
+```
+
+Pour le faire automatiquement à l'enregistrement, configurer l'extension Prisma de l'éditeur comme
+formateur par défaut des fichiers `.prisma` et activer le formatage à la sauvegarde.
 
 Le script `pnpm database:studio` force Prisma Studio sur `http://localhost:5555`.
 

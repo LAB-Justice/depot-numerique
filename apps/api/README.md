@@ -1,8 +1,8 @@
 # API Dépôt Numérique
 
 API HTTP NestJS de Dépôt Numérique. Ce workspace fournit le socle applicatif : configuration
-validée, logs structurés, sécurité HTTP, versionnement, documentation OpenAPI et contrôles de santé
-de PostgreSQL, Redis et MinIO.
+validée, logs structurés, sécurité HTTP, versionnement, authentification Better Auth, documentation
+OpenAPI et contrôles de santé de PostgreSQL, Redis et MinIO.
 
 La documentation technique détaillée se trouve dans [`docs/api.md`](../../docs/api.md).
 
@@ -21,6 +21,9 @@ apps/api/
     config/
       environment.schema.ts     # Validation Joi des variables d'environnement
       logger.config.ts          # Configuration des logs Pino
+    auth/
+      auth.ts                    # Configuration Better Auth
+      auth.module.ts             # Intégration de Better Auth dans NestJS
     core/
       database/                 # Client Prisma et cycle de vie PostgreSQL
       redis/                    # Client Redis partagé par l'API
@@ -43,8 +46,10 @@ cp apps/api/.env.example apps/api/.env
 cp packages/database/.env.example packages/database/.env
 ```
 
-Le fichier `apps/api/.env.example` documente les variables propres à l'API et ses connexions à
-PostgreSQL, Redis et MinIO. Les fichiers `.env` locaux ne doivent pas être commités.
+Le fichier `apps/api/.env.example` documente les variables propres à l'API, ses connexions à
+PostgreSQL, Redis et MinIO, ainsi que `BETTER_AUTH_URL`, `BETTER_AUTH_WEB_ORIGIN` et
+`BETTER_AUTH_SECRET`. Le secret doit contenir au moins 32 caractères et être injecté par le système
+de secrets hors développement. Les fichiers `.env` locaux ne doivent pas être commités.
 
 ## Démarrage
 
@@ -67,6 +72,11 @@ Services exposés localement :
 - OpenAPI JSON : `http://localhost:3000/api/docs-json`
 - Liveness : `http://localhost:3000/api/health/live`
 - Readiness : `http://localhost:3000/api/health/ready`
+- Better Auth via le proxy web : `http://localhost:4200/api/auth/...`
+
+`BETTER_AUTH_URL` désigne l'URL publique vue par le navigateur. En local, elle vaut donc
+`http://localhost:4200`, et non l'adresse interne de l'API, car Angular transmet `/api/**` au port
+`3000`. `BETTER_AUTH_WEB_ORIGIN` autorise cette origine pour les requêtes d'authentification.
 
 Swagger est désactivé lorsque `NODE_ENV=production`.
 

@@ -1,59 +1,49 @@
-# Web
+# Frontend Dépôt Numérique
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.3.
+Application Angular de Dépôt Numérique. Le frontend utilise le client Better Auth et communique avec
+l'API par des chemins relatifs sous `/api`.
 
-## Development server
+La documentation générale du développement se trouve dans [`docs/development.md`](../../docs/development.md).
 
-To start a local development server, run:
+## Démarrage local
 
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Depuis la racine du monorepo :
 
 ```bash
-ng generate component component-name
+pnpm install
+pnpm web:dev
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Le frontend est exposé sur `http://localhost:4200`.
+
+## Proxy vers l'API
+
+La configuration de développement transmet `/api/**` vers `http://localhost:3000`. Le navigateur
+reste ainsi sur l'origine `http://localhost:4200`, y compris pour Better Auth et ses cookies de
+session. Le port `3000` est une cible interne au poste de développement et ne doit pas être utilisé
+comme URL publique par le client Angular.
+
+En production, le reverse proxy de la plateforme devra appliquer le même principe : servir le
+frontend et router `/api` vers NestJS sous une origine HTTPS publique commune.
+
+## Authentification
+
+Le client Better Auth est déclaré dans `src/app/auth/auth.client.ts`. Il utilise l'origine courante
+et appelle donc `/api/auth`. La redirection automatique vers le SSO sera ajoutée avec le plugin SSO
+et un guard Angular ; elle n'est pas encore implémentée à ce stade.
+
+## Commandes
+
+Les commandes sont lancées depuis la racine du monorepo :
 
 ```bash
-ng generate --help
+pnpm web:dev
+pnpm web:build
+pnpm web:test
+pnpm web:typecheck
+pnpm web:lint
+pnpm web:format
+pnpm web:format:check
+pnpm web:check
+pnpm web:check:fix
 ```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

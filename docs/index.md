@@ -34,6 +34,7 @@ Le cycle cible est le suivant : un agent dépose un document depuis l'interface 
 - Documentation projet : `VitePress`
 - Base de données : `PostgreSQL`
 - ORM : `Prisma`
+- Authentification et sessions : `Better Auth`
 - Queue et cache : `BullMQ`, `Redis`
 - Stockage fichiers : `MinIO`
 - SSO local : `Keycloak`, `OpenLDAP`, `phpLDAPadmin`
