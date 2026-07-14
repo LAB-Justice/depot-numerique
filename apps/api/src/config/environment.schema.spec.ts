@@ -7,6 +7,9 @@ const REQUIRED_ENV = {
   MINIO_ENDPOINT: 'localhost',
   MINIO_ACCESS_KEY: 'test',
   MINIO_SECRET_KEY: 'test',
+  BETTER_AUTH_URL: 'http://localhost:4200',
+  BETTER_AUTH_SECRET: 'test-secret-with-at-least-32-characters',
+  BETTER_AUTH_WEB_ORIGIN: 'http://localhost:4200',
 } as const;
 
 describe('environmentSchema', () => {
@@ -145,6 +148,34 @@ describe('environmentSchema', () => {
         }),
         expect.objectContaining({
           path: ['MINIO_RAW_BUCKET'],
+        }),
+      ]),
+    );
+  });
+
+  it('should reject an invalid Better Auth configuration', () => {
+    const { error } = environmentSchema.validate(
+      {
+        ...REQUIRED_ENV,
+        BETTER_AUTH_URL: 'invalid-url',
+        BETTER_AUTH_SECRET: 'too-short',
+        BETTER_AUTH_WEB_ORIGIN: 'invalid-origin',
+      },
+      {
+        abortEarly: false,
+      },
+    );
+
+    expect(error?.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: ['BETTER_AUTH_URL'],
+        }),
+        expect.objectContaining({
+          path: ['BETTER_AUTH_SECRET'],
+        }),
+        expect.objectContaining({
+          path: ['BETTER_AUTH_WEB_ORIGIN'],
         }),
       ]),
     );

@@ -29,4 +29,11 @@ export const environmentSchema = Joi.object({
   CORS_ALLOWED_ORIGINS: Joi.string().default('http://localhost:4200'),
   THROTTLE_TTL_MS: Joi.number().integer().min(1000).default(60000),
   THROTTLE_LIMIT: Joi.number().integer().min(1).default(100),
+  BETTER_AUTH_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .required(),
+  BETTER_AUTH_SECRET: Joi.string().min(32).required(),
+  BETTER_AUTH_WEB_ORIGIN: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .required(),
 });
