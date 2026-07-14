@@ -14,3 +14,7 @@ process.env.MINIO_USE_SSL = 'false';
 process.env.MINIO_ACCESS_KEY = 'root';
 process.env.MINIO_SECRET_KEY = 'password';
 process.env.MINIO_RAW_BUCKET = 'documents-raw';
+
+process.env.BETTER_AUTH_URL = 'http://localhost:4200';
+process.env.BETTER_AUTH_SECRET = 'test-secret-with-at-least-32-characters';
+process.env.BETTER_AUTH_WEB_ORIGIN = 'http://localhost:4200';
