@@ -107,7 +107,7 @@ services:
       - "${PHPLDAPADMIN_PORT:-8081}:80"
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.6.4
+    image: quay.io/keycloak/keycloak:26.7.0-1
     container_name: depot-numerique-keycloak
     restart: unless-stopped
     command: ["start-dev", "--import-realm"]
