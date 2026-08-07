@@ -2,6 +2,7 @@ import { sso } from '@better-auth/sso';
 import type { DatabaseClient } from '@depot-numerique/database';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { synchronizeSsoUser } from './sso-user-provisioning';
 
 export interface CreateAuthOptions {
   baseUrl: string;
@@ -125,7 +126,9 @@ export function createAuth(options: CreateAuthOptions) {
             },
           },
         ],
-        provisionUser: async () => {},
+        provisionUser: async ({ user, userInfo }) => {
+          await synchronizeSsoUser(options.database, user.id, userInfo);
+        },
         provisionUserOnEveryLogin: true,
         providersLimit: 0,
         saml: {
