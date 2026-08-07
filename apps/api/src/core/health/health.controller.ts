@@ -11,11 +11,13 @@ import {
   HealthCheckService,
   PrismaHealthIndicator,
 } from '@nestjs/terminus';
+import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import { DatabaseService } from '../database/database.service';
 import { MinioHealthIndicator } from './minio.health-indicator';
 import { RedisHealthIndicator } from './redis.health-indicator';
 
 @ApiTags('health')
+@AllowAnonymous()
 @Controller({
   path: 'health',
   version: VERSION_NEUTRAL,
