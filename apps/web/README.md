@@ -20,17 +20,24 @@ Le frontend est exposé sur `http://localhost:4200`.
 
 La configuration de développement transmet `/api/**` vers `http://localhost:3000`. Le navigateur
 reste ainsi sur l'origine `http://localhost:4200`, y compris pour Better Auth et ses cookies de
-session. Le port `3000` est une cible interne au poste de développement et ne doit pas être utilisé
-comme URL publique par le client Angular.
+session. À l'ouverture du site, Angular vérifie la session Better Auth et déclenche automatiquement
+le fournisseur SAML par défaut si elle est absente. Il n'existe volontairement pas de page ni de
+bouton de connexion ; la page applicative n'est rendue qu'après validation de la session. Le port
+`3000` est une cible interne au poste de développement et ne doit pas être utilisé comme URL publique
+par le client Angular.
 
-En production, le reverse proxy de la plateforme devra appliquer le même principe : servir le
-frontend et router `/api` vers NestJS sous une origine HTTPS publique commune.
+Cette vérification frontend contrôle l'affichage et le parcours utilisateur ; elle ne constitue pas
+une autorisation de sécurité. L'API applique indépendamment un garde Better Auth global à ses routes
+métier.
+
+En production conteneurisée, le reverse proxy sert le frontend et route `/api` vers NestJS sous une origine
+HTTPS publique commune.
 
 ## Authentification
 
 Le client Better Auth est déclaré dans `src/app/auth/auth.client.ts`. Il utilise l'origine courante
-et appelle donc `/api/auth`. La redirection automatique vers le SSO sera ajoutée avec le plugin SSO
-et un guard Angular ; elle n'est pas encore implémentée à ce stade.
+et appelle donc `/api/auth`. La redirection automatique vers le SSO est déclenchée par
+`AuthenticationService` lorsque la session est absente.
 
 ## Commandes
 
