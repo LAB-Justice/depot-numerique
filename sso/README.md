@@ -31,6 +31,18 @@ sso/
 - les mappers LDAP vers le modèle utilisateur Keycloak ;
 - les mappers SAML vers les attributs attendus par l'application.
 
+Le client exige des requêtes signées et produit une réponse signée contenant une assertion chiffrée.
+Il récupère les certificats publics du SP depuis les métadonnées de l'API. Les clés privées restent
+exclusivement côté application.
+
+Générer les certificats locaux avant de démarrer l'API :
+
+```bash
+pnpm sso:certificates:generate
+```
+
+Les fichiers sont créés dans `.secrets/saml` et ne doivent jamais être versionnés.
+
 `openldap/schema/depot-numerique.schema` déclare les attributs LDAP custom utilisés pour la simulation
 locale :
 
@@ -38,6 +50,7 @@ locale :
 - `logonId`
 - `roles`
 - `bureauIGC`
+- `siteDescription`
 - `affectationOp2`
 - `affectationOp3`
 - `affectationOp4`
@@ -83,6 +96,7 @@ Exemple :
 ```text
 uid=agent-lille.olivier,ou=people,dc=justice,dc=fr
 bureauIGC=ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription=Tribunal judiciaire de Lille
 ```
 
 Cela signifie que l'utilisateur est stocké dans la branche utilisateurs, mais rattaché au Tribunal
@@ -132,32 +146,36 @@ Rôles simulés :
 Les valeurs utilisent des identifiants techniques sans espace pour rester cohérentes avec le format
 `APPLICATION:PROFIL`.
 
+Ces quatre rôles sont mutuellement exclusifs pour Dépôt Numérique : un compte doit avoir exactement
+une de ces valeurs. L'attribut LDAP reste multivalué parce qu'un utilisateur peut également porter
+des profils appartenant à d'autres applications.
+
 ## Comptes De Test
 
 Tous les comptes utilisent le mot de passe `password`.
 
-| Login | Rôle SSO | Rattachement |
-| --- | --- | --- |
-| `admin-general.sophie` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_GENERAL` | DSJ |
-| `admin-regional-douai.pierre` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL` | CA Douai |
-| `admin-local-ca-douai.anne` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | CA Douai |
-| `agent-ca-douai.louis` | `DEPOT_NUMERIQUE:AGENT` | CA Douai |
-| `admin-local-lille.claire` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TJ Lille |
-| `admin-regional-lille.mathieu` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL` | TJ Lille |
-| `agent-lille.olivier` | `DEPOT_NUMERIQUE:AGENT` | TJ Lille |
-| `agent-lille.marie` | `DEPOT_NUMERIQUE:AGENT` | TJ Lille |
-| `admin-local-tprox-tourcoing.thomas` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TPROX Tourcoing |
+| Login                                 | Rôle SSO                                  | Rattachement    |
+| ------------------------------------- | ----------------------------------------- | --------------- |
+| `admin-general.sophie`                | `DEPOT_NUMERIQUE:ADMINISTRATEUR_GENERAL`  | DSJ             |
+| `admin-regional-douai.pierre`         | `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL` | CA Douai        |
+| `admin-local-ca-douai.anne`           | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL`    | CA Douai        |
+| `agent-ca-douai.louis`                | `DEPOT_NUMERIQUE:AGENT`                   | CA Douai        |
+| `admin-local-lille.claire`            | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL`    | TJ Lille        |
+| `admin-regional-lille.mathieu`        | `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL` | TJ Lille        |
+| `agent-lille.olivier`                 | `DEPOT_NUMERIQUE:AGENT`                   | TJ Lille        |
+| `agent-lille.marie`                   | `DEPOT_NUMERIQUE:AGENT`                   | TJ Lille        |
+| `admin-local-tprox-tourcoing.thomas`  | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL`    | TPROX Tourcoing |
 | `admin-regional-tprox-tourcoing.nora` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL` | TPROX Tourcoing |
-| `admin-local-arras.nadia` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TJ Arras |
-| `agent-arras.luc` | `DEPOT_NUMERIQUE:AGENT` | TJ Arras |
-| `admin-local-douai.elise` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TJ Douai |
-| `agent-douai.hugo` | `DEPOT_NUMERIQUE:AGENT` | TJ Douai |
-| `admin-local-cph-lille.sarah` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | CPH Lille |
-| `admin-regional-amiens.julien` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL` | CA Amiens |
-| `admin-local-ca-amiens.camille` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | CA Amiens |
-| `agent-ca-amiens.emma` | `DEPOT_NUMERIQUE:AGENT` | CA Amiens |
-| `admin-local-amiens.manon` | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL` | TJ Amiens |
-| `agent-amiens.ines` | `DEPOT_NUMERIQUE:AGENT` | TJ Amiens |
+| `admin-local-arras.nadia`             | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL`    | TJ Arras        |
+| `agent-arras.luc`                     | `DEPOT_NUMERIQUE:AGENT`                   | TJ Arras        |
+| `admin-local-douai.elise`             | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL`    | TJ Douai        |
+| `agent-douai.hugo`                    | `DEPOT_NUMERIQUE:AGENT`                   | TJ Douai        |
+| `admin-local-cph-lille.sarah`         | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL`    | CPH Lille       |
+| `admin-regional-amiens.julien`        | `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL` | CA Amiens       |
+| `admin-local-ca-amiens.camille`       | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL`    | CA Amiens       |
+| `agent-ca-amiens.emma`                | `DEPOT_NUMERIQUE:AGENT`                   | CA Amiens       |
+| `admin-local-amiens.manon`            | `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL`    | TJ Amiens       |
+| `agent-amiens.ines`                   | `DEPOT_NUMERIQUE:AGENT`                   | TJ Amiens       |
 
 ## Attributs SAML
 
@@ -170,6 +188,7 @@ L'assertion SAML expose :
 - `mail`
 - `roles`
 - `bureauIGC`
+- `siteDescription`
 - `affectationOp2`
 - `affectationOp3`
 - `affectationOp4`
@@ -184,8 +203,11 @@ ne doit pas être journalisée ou exposée sans nécessité métier.
 
 ## Interfaces
 
-- Keycloak : `http://localhost:8080`
-- Metadata SAML : `http://localhost:8080/realms/depot-numerique/protocol/saml/descriptor`
+- Keycloak via Traefik : `https://idp.depot-numerique.localhost`
+- Metadata SAML :
+  `https://idp.depot-numerique.localhost/realms/depot-numerique/protocol/saml/descriptor`
+- Metadata du SP :
+  `https://depot-numerique.localhost/api/auth/sso/saml2/sp/metadata?providerId=justice-saml&format=xml`
 - OpenLDAP : `ldap://localhost:389`
 - phpLDAPadmin : `http://localhost:8081`
 
