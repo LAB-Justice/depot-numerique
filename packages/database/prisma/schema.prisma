@@ -4,9 +4,10 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider     = "prisma-client"
-  output       = "../generated/prisma"
-  moduleFormat = "cjs"
+  provider        = "prisma-client"
+  output          = "../generated/prisma"
+  moduleFormat    = "cjs"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -188,9 +189,10 @@ model AuthIdentity {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  sessions AuthSession[]
-  accounts AuthAccount[]
-  user     User?
+  sessions     AuthSession[]
+  accounts     AuthAccount[]
+  user         User?
+  ssoProviders AuthSsoProvider[]
 
   @@map("auth_identities")
 }
@@ -242,7 +244,25 @@ model AuthVerification {
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@unique([identifier], map: "auth_verifications_saml_reservation_identifier_key", where: raw("\"identifier\" LIKE 'saml-authn-request:%' OR \"identifier\" LIKE 'saml-used-assertion:%'"))
   @@index([identifier])
   @@index([expiresAt])
   @@map("auth_verifications")
+}
+
+model AuthSsoProvider {
+  id             String  @id @default(uuid()) @db.Uuid
+  issuer         String  @db.VarChar(2048)
+  domain         String  @db.VarChar(255)
+  oidcConfig     String? @map("oidc_config") @db.Text
+  samlConfig     String? @map("saml_config") @db.Text
+  userId         String  @map("user_id") @db.Uuid
+  providerId     String  @unique @map("provider_id") @db.VarChar(100)
+  organizationId String? @map("organization_id") @db.VarChar(255)
+
+  user AuthIdentity @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([domain])
+  @@map("auth_sso_providers")
 }
