@@ -36,4 +36,24 @@ export const environmentSchema = Joi.object({
   BETTER_AUTH_WEB_ORIGIN: Joi.string()
     .uri({ scheme: ['http', 'https'] })
     .required(),
+  SSO_PROVIDER_ID: Joi.string()
+    .pattern(/^[a-z0-9][a-z0-9-]{0,99}$/)
+    .default('justice-saml'),
+  SSO_DOMAIN: Joi.string().domain({ allowUnicode: false }).default('justice.fr'),
+  SSO_SP_ENTITY_ID: Joi.string().min(1).max(1024).default('depot-numerique'),
+  SSO_IDP_METADATA_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .required(),
+  SSO_SP_ENCRYPTION_CERTIFICATE_PATH: Joi.string()
+    .min(1)
+    .default('../../.secrets/saml/sp-encryption-certificate.pem'),
+  SSO_SP_ENCRYPTION_PRIVATE_KEY_PATH: Joi.string()
+    .min(1)
+    .default('../../.secrets/saml/sp-encryption-private-key.pem'),
+  SSO_SP_SIGNING_CERTIFICATE_PATH: Joi.string()
+    .min(1)
+    .default('../../.secrets/saml/sp-signing-certificate.pem'),
+  SSO_SP_SIGNING_PRIVATE_KEY_PATH: Joi.string()
+    .min(1)
+    .default('../../.secrets/saml/sp-signing-private-key.pem'),
 });
