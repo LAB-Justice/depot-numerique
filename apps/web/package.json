@@ -13,7 +13,8 @@
     "check:fix": "biome check --write .",
     "typecheck": "ngc -p tsconfig.app.json --noEmit",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test --watch=false",
+    "test:watch": "ng test"
   },
   "private": true,
   "packageManager": "pnpm@11.8.0",
