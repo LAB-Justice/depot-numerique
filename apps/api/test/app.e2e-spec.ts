@@ -21,8 +21,8 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/api/v1 (GET)', () => {
-    return request(app.getHttpServer()).get('/api/v1').expect(200).expect('Hello World!');
+  it('/api/v1 (GET) should require a session', () => {
+    return request(app.getHttpServer()).get('/api/v1').expect(401);
   });
 
   it('/ (GET) should not expose an unversioned route', () => {

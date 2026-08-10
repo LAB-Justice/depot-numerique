@@ -24,7 +24,7 @@ describe('Request ID (e2e)', () => {
   });
 
   it('should generate a request ID when none is provided', async () => {
-    const response = await request(app.getHttpServer()).get('/api/v1').expect(200);
+    const response = await request(app.getHttpServer()).get('/api/v1').expect(401);
 
     expect(response.headers['x-request-id']).toMatch(UUID_PATTERN);
   });
@@ -35,7 +35,7 @@ describe('Request ID (e2e)', () => {
     const response = await request(app.getHttpServer())
       .get('/api/v1')
       .set('X-Request-Id', requestId)
-      .expect(200);
+      .expect(401);
 
     expect(response.headers['x-request-id']).toBe(requestId);
   });
@@ -46,7 +46,7 @@ describe('Request ID (e2e)', () => {
     const response = await request(app.getHttpServer())
       .get('/api/v1')
       .set('X-Request-Id', invalidRequestId)
-      .expect(200);
+      .expect(401);
 
     expect(response.headers['x-request-id']).not.toBe(invalidRequestId);
     expect(response.headers['x-request-id']).toMatch(UUID_PATTERN);
