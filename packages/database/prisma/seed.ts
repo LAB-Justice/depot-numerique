@@ -74,7 +74,7 @@ const userData: UserSeed[] = [
     firstName: 'Alice',
     lastName: 'Administration',
     email: 'alice.admin-general@example.invalid',
-    role: UserRole.ADMINISTRATEUR_GENERAL,
+    role: UserRole.ADMINISTRATEUR_NATIONAL,
   },
   {
     igcId: '00000002',
