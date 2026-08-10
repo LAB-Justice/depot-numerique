@@ -89,9 +89,10 @@ givenName: Sophie
 mail: admin-general.sophie@justice.fr
 userPassword: password
 igcid: 00000001
-logonId: sophie.admin-general
+logonId: admin-general.sophie
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_GENERAL
 bureauIGC: ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Direction des services judiciaires
 
 dn: uid=admin-regional-douai.pierre,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -106,9 +107,10 @@ givenName: Pierre
 mail: admin-regional-douai.pierre@justice.fr
 userPassword: password
 igcid: 00000002
-logonId: pierre.admin-regional-douai
+logonId: admin-regional-douai.pierre
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL
 bureauIGC: ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Cour d'appel de Douai
 
 dn: uid=admin-local-ca-douai.anne,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -123,9 +125,10 @@ givenName: Anne
 mail: admin-local-ca-douai.anne@justice.fr
 userPassword: password
 igcid: 00000003
-logonId: anne.admin-local-ca-douai
+logonId: admin-local-ca-douai.anne
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL
 bureauIGC: ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Cour d'appel de Douai
 
 dn: uid=agent-ca-douai.louis,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -140,9 +143,10 @@ givenName: Louis
 mail: agent-ca-douai.louis@justice.fr
 userPassword: password
 igcid: 00000019
-logonId: louis.agent-ca-douai
+logonId: agent-ca-douai.louis
 roles: DEPOT_NUMERIQUE:AGENT
 bureauIGC: ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Cour d'appel de Douai
 
 dn: uid=admin-local-lille.claire,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -157,9 +161,10 @@ givenName: Claire
 mail: admin-local-lille.claire@justice.fr
 userPassword: password
 igcid: 00000004
-logonId: claire.admin-local-lille
+logonId: admin-local-lille.claire
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL
 bureauIGC: ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Tribunal judiciaire de Lille
 
 dn: uid=admin-regional-lille.mathieu,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -174,9 +179,10 @@ givenName: Mathieu
 mail: admin-regional-lille.mathieu@justice.fr
 userPassword: password
 igcid: 00000005
-logonId: mathieu.admin-regional-lille
+logonId: admin-regional-lille.mathieu
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL
 bureauIGC: ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Tribunal judiciaire de Lille
 
 dn: uid=agent-lille.olivier,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -191,9 +197,10 @@ givenName: Olivier
 mail: agent-lille.olivier@justice.fr
 userPassword: password
 igcid: 00000006
-logonId: olivier.agent-lille
+logonId: agent-lille.olivier
 roles: DEPOT_NUMERIQUE:AGENT
 bureauIGC: ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Tribunal judiciaire de Lille
 
 dn: uid=agent-lille.marie,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -208,9 +215,10 @@ givenName: Marie
 mail: agent-lille.marie@justice.fr
 userPassword: password
 igcid: 00000007
-logonId: marie.agent-lille
+logonId: agent-lille.marie
 roles: DEPOT_NUMERIQUE:AGENT
 bureauIGC: ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Tribunal judiciaire de Lille
 
 dn: uid=admin-local-tprox-tourcoing.thomas,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -225,9 +233,10 @@ givenName: Thomas
 mail: admin-local-tprox-tourcoing.thomas@justice.fr
 userPassword: password
 igcid: 00000008
-logonId: thomas.admin-local-tprox-tourcoing
+logonId: admin-local-tprox-tourcoing.thomas
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL
 bureauIGC: ou=00000005,ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Tribunal de proximite de Tourcoing
 
 dn: uid=admin-regional-tprox-tourcoing.nora,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -242,9 +251,10 @@ givenName: Nora
 mail: admin-regional-tprox-tourcoing.nora@justice.fr
 userPassword: password
 igcid: 00000009
-logonId: nora.admin-regional-tprox-tourcoing
+logonId: admin-regional-tprox-tourcoing.nora
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL
 bureauIGC: ou=00000005,ou=00000004,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Tribunal de proximite de Tourcoing
 
 dn: uid=admin-local-arras.nadia,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -259,9 +269,10 @@ givenName: Nadia
 mail: admin-local-arras.nadia@justice.fr
 userPassword: password
 igcid: 00000010
-logonId: nadia.admin-local-arras
+logonId: admin-local-arras.nadia
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL
 bureauIGC: ou=00000006,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Tribunal judiciaire d'Arras
 
 dn: uid=agent-arras.luc,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -276,9 +287,10 @@ givenName: Luc
 mail: agent-arras.luc@justice.fr
 userPassword: password
 igcid: 00000011
-logonId: luc.agent-arras
+logonId: agent-arras.luc
 roles: DEPOT_NUMERIQUE:AGENT
 bureauIGC: ou=00000006,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Tribunal judiciaire d'Arras
 
 dn: uid=admin-local-douai.elise,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -293,9 +305,10 @@ givenName: Elise
 mail: admin-local-douai.elise@justice.fr
 userPassword: password
 igcid: 00000012
-logonId: elise.admin-local-douai
+logonId: admin-local-douai.elise
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL
 bureauIGC: ou=00000007,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Tribunal judiciaire de Douai
 
 dn: uid=agent-douai.hugo,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -310,9 +323,10 @@ givenName: Hugo
 mail: agent-douai.hugo@justice.fr
 userPassword: password
 igcid: 00000013
-logonId: hugo.agent-douai
+logonId: agent-douai.hugo
 roles: DEPOT_NUMERIQUE:AGENT
 bureauIGC: ou=00000007,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Tribunal judiciaire de Douai
 
 dn: uid=admin-local-cph-lille.sarah,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -327,9 +341,10 @@ givenName: Sarah
 mail: admin-local-cph-lille.sarah@justice.fr
 userPassword: password
 igcid: 00000014
-logonId: sarah.admin-local-cph-lille
+logonId: admin-local-cph-lille.sarah
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL
 bureauIGC: ou=00000010,ou=00000003,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Conseil de prud'hommes de Lille
 
 dn: uid=admin-regional-amiens.julien,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -344,9 +359,10 @@ givenName: Julien
 mail: admin-regional-amiens.julien@justice.fr
 userPassword: password
 igcid: 00000015
-logonId: julien.admin-regional-amiens
+logonId: admin-regional-amiens.julien
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL
 bureauIGC: ou=00000008,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Cour d'appel d'Amiens
 
 dn: uid=admin-local-ca-amiens.camille,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -361,9 +377,10 @@ givenName: Camille
 mail: admin-local-ca-amiens.camille@justice.fr
 userPassword: password
 igcid: 00000016
-logonId: camille.admin-local-ca-amiens
+logonId: admin-local-ca-amiens.camille
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL
 bureauIGC: ou=00000008,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Cour d'appel d'Amiens
 
 dn: uid=agent-ca-amiens.emma,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -378,9 +395,10 @@ givenName: Emma
 mail: agent-ca-amiens.emma@justice.fr
 userPassword: password
 igcid: 00000020
-logonId: emma.agent-ca-amiens
+logonId: agent-ca-amiens.emma
 roles: DEPOT_NUMERIQUE:AGENT
 bureauIGC: ou=00000008,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Cour d'appel d'Amiens
 
 dn: uid=admin-local-amiens.manon,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -395,9 +413,10 @@ givenName: Manon
 mail: admin-local-amiens.manon@justice.fr
 userPassword: password
 igcid: 00000017
-logonId: manon.admin-local-amiens
+logonId: admin-local-amiens.manon
 roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL
 bureauIGC: ou=00000009,ou=00000008,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Tribunal judiciaire d'Amiens
 
 dn: uid=agent-amiens.ines,ou=people,dc=justice,dc=fr
 objectClass: top
@@ -412,6 +431,7 @@ givenName: Ines
 mail: agent-amiens.ines@justice.fr
 userPassword: password
 igcid: 00000018
-logonId: ines.agent-amiens
+logonId: agent-amiens.ines
 roles: DEPOT_NUMERIQUE:AGENT
 bureauIGC: ou=00000009,ou=00000008,ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
+siteDescription: Tribunal judiciaire d'Amiens
