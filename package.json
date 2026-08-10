@@ -78,7 +78,8 @@
     "database:migrate:deploy": "pnpm --filter @depot-numerique/database migrate:deploy",
     "database:migrate:status": "pnpm --filter @depot-numerique/database migrate:status",
     "database:seed": "pnpm --filter @depot-numerique/database seed",
-    "database:studio": "pnpm --filter @depot-numerique/database studio"
+    "database:studio": "pnpm --filter @depot-numerique/database studio",
+    "sso:certificates:generate": "bash scripts/sso/generate-sp-certificates.sh"
   },
   "keywords": [],
   "author": "",
