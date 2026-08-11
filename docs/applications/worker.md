@@ -1,8 +1,9 @@
 # Workers
 
-Le workspace `worker`, situé dans `apps/worker`, héberge les workers BullMQ chargés du traitement
-asynchrone des documents de la pipeline de dépôt. Il s'agit d'un processus NestJS indépendant de
-l'API afin d'isoler les traitements longs (Playwright, LLM, parsing) du cycle de requêtes HTTP.
+Le workspace `worker`, situé dans `apps/worker`, est le futur processus BullMQ de la pipeline de
+dépôt. Il est séparé de l'API afin d'isoler les traitements longs — Playwright et analyse
+documentaire — du cycle HTTP. À l'état actuel, seule une queue de démonstration est enregistrée :
+aucun traitement documentaire métier n'est encore implémenté.
 
 ## Structure
 
@@ -47,8 +48,10 @@ NODE_ENV=development
 WORKER_PORT=3001
 ```
 
-Le `ConfigModule` charge d'abord le `.env` racine, puis le `.env` local. Ce dernier surcharge le
-premier en cas de conflit. Aucun de ces fichiers ne doit être commité.
+Le `ConfigModule` reçoit `['../../.env', '.env']`. Avec Nest Config, la première valeur trouvée est
+prioritaire : le `.env` racine gagne donc en cas de doublon, tandis que le fichier du worker complète
+les variables absentes comme `WORKER_PORT`. Les variables déjà présentes dans l'environnement du
+processus restent prioritaires sur les fichiers. Aucun de ces fichiers ne doit être commité.
 
 ## Démarrage
 
@@ -60,17 +63,19 @@ pnpm worker:dev
 
 Le worker écoute sur le port `3001` (distinct de l'API sur `3000`) et se connecte à Redis via
 `BullModule.forRootAsync`. Le worker n'expose pas d'endpoints HTTP métier : le port sert uniquement
-au bootstrap NestJS.
+au serveur NestJS créé par le bootstrap. Aucun contrôleur ni healthcheck n'est encore déclaré.
+
+Le worker n'est pas inclus dans `docker-compose.yml` et ne possède pas encore de Dockerfile. La
+commande `pnpm stack:dev` ne le démarre donc pas ; utiliser `pnpm worker:dev` dans un terminal séparé.
 
 ## Queues
 
 Le registre central `queues.constants.ts` déclare les noms de queues. Le nommage suit la pipeline de
 dépôt de documents :
 
-- `test` : queue de démonstration, valider le setup BullMQ ;
+- `test` : queue de démonstration pour valider la configuration BullMQ ;
 - `preprocess` : pré-traitement et validation du document (vérification n° de dossier et trame
   IMPRIMFIP) ;
-- `llm-correction` : reformatage automatique par LLM des pages non conformes ;
 - `deposit` : dépôt IMPRIMFIP via Playwright ou API.
 
 Seule la queue `test` est active dans ce workspace. Les autres noms sont réservés pour les
@@ -85,7 +90,11 @@ Le worker `test` valide le pipeline BullMQ de bout en bout. Il expose :
 
 Le `TestProcessor` consomme les jobs de la queue `test`, journalise le message reçu, simule un
 traitement asynchrone puis retourne un résultat. Ce worker est un échafaudage destiné à valider le
-setup ; il sert de modèle pour les futurs workers métier.
+socle ; il sert de modèle pour les futurs workers métier.
+
+Le message de démonstration est journalisé. Les futurs payloads documentaires ne devront pas
+reproduire ce comportement avec du contenu, un nom de fichier ou une donnée personnelle : les logs
+devront utiliser uniquement des identifiants de corrélation (`requestId`, `documentId`, `jobId`).
 
 ## Commandes
 
@@ -111,3 +120,10 @@ un message traité avec un horodatage valide. Il s'agit d'un test unitaire : Red
 - Une seule connexion Redis partagée par l'instance via `BullModule.forRoot`.
 - Le mot de passe Redis provient d'un secret de l'orchestrateur ou de Vault.
 - Chaque worker métier possède son propre `*.module.ts` et sa queue déclarée dans `queues.constants.ts`.
+- Les payloads restent minimaux et référencent les données persistées plutôt que d'embarquer le
+  document ou des secrets.
+- Les jobs critiques utilisent retry, backoff, timeout et une stratégie explicite pour les échecs
+  définitifs.
+- Un état métier persiste dans PostgreSQL : Redis n'est pas l'unique source de vérité.
+- Les processors sont idempotents autant que possible et corrèlent leurs logs avec l'API.
+- Une image Docker séparée, un healthcheck et l'arrêt gracieux restent à implémenter avant production.

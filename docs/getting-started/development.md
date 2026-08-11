@@ -8,10 +8,11 @@ Le dépôt est un monorepo `pnpm` piloté avec `Turbo`.
 
 ```text
 apps/
-  api/      # API NestJS
-  web/      # Frontend Angular
-  worker/   # Workers BullMQ (pipeline de dépôt)
+  api/      # API NestJS et Dockerfile applicatif
+  web/      # Frontend Angular, configuration Nginx et Dockerfile
+  worker/   # Worker BullMQ de démonstration
 docs/       # Documentation VitePress
+infra/      # Configuration Traefik
 packages/
   database/ # Schéma, migrations, seed et client Prisma
 sso/        # Simulateur SSO local Keycloak SAML + OpenLDAP
@@ -21,7 +22,7 @@ Applications disponibles :
 
 - `api` : backend NestJS ;
 - `web` : frontend Angular ;
-- `worker` : workers BullMQ (pré-traitement, correction, dépôt) ;
+- `worker` : socle BullMQ avec un processor de démonstration ;
 - `@depot-numerique/docs` : documentation VitePress.
 - `@depot-numerique/database` : accès PostgreSQL partagé avec Prisma.
 
@@ -30,6 +31,8 @@ Applications disponibles :
 - Node.js, version définie dans `.nvmrc`.
 - pnpm `11.8.0`.
 - Docker et Docker Compose.
+- `mkcert` et `libnss3-tools` pour utiliser la stack conteneurisée en HTTPS.
+- OpenSSL pour les clés de signature et de chiffrement SAML du Service Provider.
 
 Activer la version Node attendue :
 
@@ -52,8 +55,8 @@ cp packages/database/.env.example packages/database/.env
 cp apps/worker/.env.example apps/worker/.env
 ```
 
-Le `.env` racine configure Docker Compose et expose les variables partagées (Redis, Postgres, MinIO,
-OpenLDAP, phpLDAPadmin, Keycloak).
+Le `.env` racine configure Docker Compose et expose les variables partagées (Redis, PostgreSQL, MinIO,
+OpenLDAP, phpLDAPadmin, Keycloak, Traefik et applications conteneurisées).
 Le `.env` du workspace API configure son port (`API_PORT`), son mode d'exécution (`NODE_ENV`), ses
 services techniques et Better Auth. En local, `BETTER_AUTH_URL` et `BETTER_AUTH_WEB_ORIGIN` valent
 `http://localhost:4200`, tandis que `BETTER_AUTH_SECRET` contient un secret local d'au moins 32
@@ -69,10 +72,23 @@ pnpm prepare
 
 ## Lancement local
 
+Deux modes de lancement sont disponibles :
+
+- le mode rapide exécute les applications avec `pnpm` et conserve uniquement l'infrastructure dans
+  Docker ;
+- le mode conteneurisé construit les images du frontend et de l'API, puis expose l'application et le
+  fournisseur SSO en HTTPS derrière Traefik.
+
+Le worker n'est pas encore conteneurisé. `pnpm stack:dev` lance donc l'API et le frontend, mais pas le
+processus BullMQ.
+
+### Applications exécutées avec pnpm
+
 Les commandes de développement suivent la même convention que les autres tâches du monorepo :
 
 - `pnpm dev` lance l'API, le frontend, le worker et la documentation avec Turbo.
 - `pnpm infra:dev` démarre uniquement les services techniques Docker.
+- `pnpm stack:dev` construit et démarre toute la stack conteneurisée en HTTPS.
 - `pnpm apps:dev` lance uniquement les applications métier : `api`, `web` et `worker`.
 - `pnpm <workspace>:dev` lance un seul workspace (`api:dev`, `web:dev`, `worker:dev`).
 
@@ -84,6 +100,17 @@ que les conteneurs soient disponibles :
 ```bash
 pnpm infra:dev
 ```
+
+Lors de la première installation, appliquer les migrations et créer le bucket MinIO attendu :
+
+```bash
+pnpm database:migrate:deploy
+docker compose exec minio sh -c 'mc alias set app http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null && mc mb --ignore-existing app/documents-raw'
+```
+
+Le nom doit correspondre à `MINIO_RAW_BUCKET`. Compose ne possède pas encore de service
+d'initialisation des buckets ; tant que le bucket est absent, `/api/health/ready` signale MinIO en
+échec.
 
 Dans le second, lancer tous les workspaces en développement :
 
@@ -121,7 +148,7 @@ Lancer seulement la documentation :
 pnpm docs:dev
 ```
 
-URLs locales :
+URLs locales dans ce mode :
 
 - API : `http://localhost:3000`
 - Frontend : `http://localhost:4200`
@@ -132,8 +159,96 @@ URLs locales :
 
 Le frontend transmet `/api/**` à `http://localhost:3000` avec `apps/web/proxy.conf.json`. Le port
 `4200` est donc l'origine publique du navigateur en développement, et le port `3000` la cible
-interne du proxy. En production, le reverse proxy devra reproduire ce routage sous une origine HTTPS
-commune.
+interne du proxy. Le port `8080` de Keycloak reste exposé dans ce mode pour les échanges techniques
+et le diagnostic local. Le parcours SSO complet avec les URLs HTTPS configurées dans le realm doit
+être vérifié avec la stack conteneurisée décrite ci-dessous.
+
+Le frontend déclenche automatiquement le SSO lorsqu'aucune session n'existe. Comme le client SAML du
+realm versionné autorise l'ACS HTTPS de la stack conteneurisée, le mode pnpm ne constitue pas à lui
+seul un environnement SSO navigateur complet.
+
+### Stack conteneurisée avec HTTPS
+
+Cette configuration lance PostgreSQL, Redis, MinIO, OpenLDAP, phpLDAPadmin, Keycloak, les migrations,
+l'API, le frontend et Traefik. Les noms en `.localhost` sont réservés à la machine locale et ne
+nécessitent normalement pas de modification de `/etc/hosts`.
+
+Installer l'autorité de certification locale de `mkcert` :
+
+```bash
+sudo apt install mkcert libnss3-tools
+mkcert -install
+```
+
+Générer le certificat utilisé par Traefik :
+
+```bash
+pnpm tls:certificates:generate
+```
+
+Générer séparément les deux paires de clés du Service Provider SAML :
+
+```bash
+pnpm sso:certificates:generate
+```
+
+Le certificat Traefik protège HTTPS. Les clés SAML servent à signer les `AuthnRequest` et à
+déchiffrer les assertions ; elles ne sont pas interchangeables.
+
+Le script conserve un certificat déjà présent et refuse de compléter un dossier partiellement
+généré. Les domaines peuvent être remplacés avec les variables `PUBLIC_HOST` et
+`IDP_PUBLIC_HOST`. Le realm fourni référence toutefois les deux noms `.localhost` : changer ces
+variables demande aussi d'adapter les URLs du client SAML.
+
+Les certificats locaux et leurs clés sont stockés dans `.secrets/`, qui ne doit jamais être commité.
+
+Renseigner dans le `.env` racine un secret Better Auth d'au moins 32 caractères. Une valeur locale
+peut être générée avec :
+
+```bash
+openssl rand -base64 48
+```
+
+Construire les images et démarrer la stack complète :
+
+```bash
+pnpm stack:dev
+```
+
+Le service `migrate` applique les migrations avant l'API. Créer une fois le bucket MinIO si le volume
+est neuf :
+
+```bash
+docker compose exec minio sh -c 'mc alias set app http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null && mc mb --ignore-existing app/documents-raw'
+```
+
+URLs HTTPS :
+
+- Application : `https://depot-numerique.localhost/`
+- Healthcheck API : `https://depot-numerique.localhost/api/health/live`
+- Administration Keycloak : `https://idp.depot-numerique.localhost/admin/master/console/`
+- Compte utilisateur Keycloak : `https://idp.depot-numerique.localhost/realms/depot-numerique/account/`
+- Métadonnées SAML : `https://idp.depot-numerique.localhost/realms/depot-numerique/protocol/saml/descriptor`
+
+Traefik redirige le port `80` vers `443`. Les routes `/api/**` sont envoyées à NestJS et les autres
+routes du domaine applicatif au frontend Angular. Keycloak utilise un domaine séparé afin de simuler
+le fournisseur d'identité externe.
+
+Nginx, à l'intérieur du conteneur web, sert uniquement les fichiers Angular et le fallback de la SPA.
+Traefik reste le reverse proxy public. Le détail des images, réseaux, volumes et headers se trouve
+dans [Infrastructure locale](../infrastructure/local-stack.md).
+
+Consulter les logs applicatifs :
+
+```bash
+docker compose --profile app logs -f traefik api web keycloak
+```
+
+Arrêter la stack complète :
+
+```bash
+docker compose --profile app down
+```
 
 ## Services Docker
 
@@ -153,7 +268,7 @@ Services disponibles :
 - phpLDAPadmin : `http://localhost:8081`
 - Keycloak : `http://localhost:8080`
 - Administration Keycloak : `http://localhost:8080/admin/master/console/`
-- Metadata SAML Keycloak : `http://localhost:8080/realms/depot-numerique/protocol/saml/descriptor`
+- Métadonnées SAML Keycloak : `http://localhost:8080/realms/depot-numerique/protocol/saml/descriptor`
 
 Keycloak simule le fournisseur d'identité SAML et lit les utilisateurs dans OpenLDAP. Démarrer
 uniquement les services SSO :
@@ -170,7 +285,7 @@ docker compose up -d --force-recreate --wait keycloak
 
 Après une modification de `sso/openldap/schema` ou `sso/openldap/ldif`, recréer les volumes
 OpenLDAP locaux pour rejouer l'initialisation de l'annuaire. Consulter
-[SSO SAML local](./keycloak.md) pour les comptes de démonstration, les attributs SAML, les
+[SSO SAML local](../authentication/local-sso.md) pour les comptes de démonstration, les attributs SAML, les
 vérifications et les limites de cette configuration.
 
 Arrêter les services :
@@ -185,9 +300,10 @@ Supprimer aussi les volumes locaux :
 docker compose down -v
 ```
 
-Attention : `docker compose down -v` supprime les données locales PostgreSQL, Redis, MinIO et
-OpenLDAP. Les données Keycloak sont éphémères et le realm est recréé depuis
-`sso/keycloak/realm.json`.
+Attention : `docker compose down -v` supprime les volumes locaux PostgreSQL, Redis, MinIO et
+OpenLDAP. Keycloak n'a pas de volume nommé : sa base H2 se trouve dans le conteneur et disparaît dès
+que celui-ci est supprimé, même sans `-v`. Le realm est réimporté depuis
+`sso/keycloak/realm.json` au démarrage suivant.
 
 ## Qualité
 
@@ -340,6 +456,12 @@ pnpm database:seed
 pnpm database:studio
 ```
 
+Une création de migration doit recevoir un nom explicite :
+
+```bash
+pnpm database:migrate:create --name description_courte
+```
+
 Le schéma Prisma est formaté séparément de Biome. Pour l'aligner manuellement :
 
 ```bash
@@ -387,11 +509,15 @@ Initialiser ou remettre à jour les données de développement :
 pnpm database:seed
 ```
 
+Le seed possède une arborescence simplifiée qui ne reprend pas les mêmes codes de structure que le
+LDIF OpenLDAP complet. Il ne faut pas le mélanger par défaut avec un test de provisioning SSO sur la
+même base ; consulter [Base de données et migrations](../data/database.md#seed-de-développement).
+
 Une migration est un historique SQL versionné, pas une copie de la base locale. Les dossiers
 créés dans `packages/database/prisma/migrations` sont commités puis appliqués sur les autres bases
 avec `pnpm database:migrate:deploy` par la CI/CD.
 
-Consulter [Base de données et migrations](./database.md) pour le modèle, le seed et les règles de
+Consulter [Base de données et migrations](../data/database.md) pour le modèle, le seed et les règles de
 déploiement.
 
 ## Documentation
@@ -415,6 +541,10 @@ base: "/depot-numerique/";
 ```
 
 Le workflow GitHub Actions `.github/workflows/deploy.yml` construit `docs/.vitepress/dist` et le publie sur GitHub Pages.
+
+Les pages VitePress couvrent le développement, l'infrastructure Docker, l'API, la base de données,
+les workers et les deux niveaux de documentation SSO. Les README placés dans les workspaces restent
+des points d'entrée courts pour les développeurs qui travaillent dans un sous-dossier.
 
 ## Commandes utiles
 
