@@ -34,7 +34,7 @@ describe('App', () => {
     expect(compiled.querySelector('h1')?.textContent).toContain('Dépôt automatisé de documents');
   });
 
-  it('n’affiche pas l’application avant la vérification de session', () => {
+  it('should not render the application before the session check completes', () => {
     authentication.requireAuthentication.mockReturnValue(
       new Promise<AuthenticationResult>(() => undefined),
     );
@@ -47,7 +47,7 @@ describe('App', () => {
     expect(compiled.querySelector('router-outlet')).toBeNull();
   });
 
-  it('affiche un état fermé sans bouton si le SSO échoue', async () => {
+  it('should render a closed state without a button when SSO fails', async () => {
     authentication.requireAuthentication.mockRejectedValue(new Error('SSO indisponible'));
 
     const fixture = TestBed.createComponent(App);
