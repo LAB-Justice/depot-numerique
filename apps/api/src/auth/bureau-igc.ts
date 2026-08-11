@@ -17,7 +17,7 @@ export class BureauIgcError extends Error {
 }
 
 export function pendingStructureDisplayName(ssoCode: string): string {
-  return `Libellé indisponible - SRJ ${ssoCode}`;
+  return `Libellé indisponible — SRJ ${ssoCode}`;
 }
 
 export function parseBureauIgc(value: string): BureauIgcPath {
