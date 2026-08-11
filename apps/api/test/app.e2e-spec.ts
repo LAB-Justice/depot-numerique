@@ -1,39 +1,74 @@
 import type { INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types';
+import { AppController } from './../src/app.controller';
 import { AppModule } from './../src/app.module';
+import { AppService } from './../src/app.service';
 import { configureApp } from './../src/bootstrap/configure-app';
 
-describe('AppController (e2e)', () => {
-  let app: INestApplication<App>;
+async function createProtectedApplication() {
+  const moduleFixture: TestingModule = await Test.createTestingModule({
+    imports: [AppModule],
+  }).compile();
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+  const app = moduleFixture.createNestApplication({
+    bodyParser: false,
+  });
+  configureApp(app);
+  await app.init();
 
-    app = moduleFixture.createNestApplication({
-      bodyParser: false,
-    });
-    configureApp(app);
+  return app;
+}
 
-    await app.init();
+async function createControllerApplication() {
+  const moduleFixture: TestingModule = await Test.createTestingModule({
+    controllers: [AppController],
+    providers: [
+      AppService,
+      {
+        provide: ConfigService,
+        useValue: new ConfigService({
+          CORS_ALLOWED_ORIGINS: 'http://localhost:4200',
+        }),
+      },
+    ],
+  }).compile();
+
+  const app = moduleFixture.createNestApplication();
+  configureApp(app);
+  await app.init();
+
+  return app;
+}
+
+describe('Application routing and authentication (e2e)', () => {
+  let protectedApp: INestApplication<App>;
+  let controllerApp: INestApplication<App>;
+
+  beforeAll(async () => {
+    protectedApp = await createProtectedApplication();
+    controllerApp = await createControllerApplication();
   });
 
-  it('/api/v1 (GET) should require a session', () => {
-    return request(app.getHttpServer()).get('/api/v1').expect(401);
+  it('/api/v1 (GET) should reject an unauthenticated request', () => {
+    return request(protectedApp.getHttpServer()).get('/api/v1').expect(401);
+  });
+
+  it('/api/v1 (GET) should expose the controller response through the configured HTTP route', () => {
+    return request(controllerApp.getHttpServer()).get('/api/v1').expect(200).expect('Hello World!');
   });
 
   it('/ (GET) should not expose an unversioned route', () => {
-    return request(app.getHttpServer()).get('/').expect(404);
+    return request(protectedApp.getHttpServer()).get('/').expect(404);
   });
 
   it('/api/v2 (GET) should reject an unknown version', () => {
-    return request(app.getHttpServer()).get('/api/v2').expect(404);
+    return request(protectedApp.getHttpServer()).get('/api/v2').expect(404);
   });
 
-  afterEach(async () => {
-    await app.close();
+  afterAll(async () => {
+    await Promise.all([protectedApp.close(), controllerApp.close()]);
   });
 });
