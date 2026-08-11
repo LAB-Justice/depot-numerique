@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
+import { RequestMethod } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { Params } from 'nestjs-pino';
 import type { LogLevel } from './environment.schema';
@@ -20,6 +21,8 @@ export function createLoggerConfig(config: ConfigService): Params {
   const level = config.getOrThrow<LogLevel>('LOG_LEVEL');
 
   return {
+    forRoutes: [{ path: '{*path}', method: RequestMethod.ALL }],
+
     pinoHttp: {
       level,
 
