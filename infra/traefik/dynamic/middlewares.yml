@@ -1,0 +1,35 @@
+http:
+  middlewares:
+    web-security:
+      headers:
+        contentSecurityPolicy: >-
+          default-src 'self';
+          base-uri 'self';
+          connect-src 'self';
+          font-src 'self' data:;
+          form-action 'self' https://idp.depot-numerique.localhost;
+          frame-ancestors 'none';
+          frame-src 'self' blob:;
+          img-src 'self' data: blob:;
+          object-src 'self' blob:;
+          script-src 'self';
+          style-src 'self' 'unsafe-inline';
+          upgrade-insecure-requests
+        contentTypeNosniff: true
+        frameDeny: true
+        permissionsPolicy: camera=(), geolocation=(), microphone=(), payment=(), usb=()
+        referrerPolicy: no-referrer
+        stsIncludeSubdomains: true
+        stsSeconds: 31536000
+        customResponseHeaders:
+          Server: ""
+
+    web-compression:
+      compress:
+        minResponseBodyBytes: 1024
+
+    web-defaults:
+      chain:
+        middlewares:
+          - web-security
+          - web-compression
