@@ -2,6 +2,11 @@
 
 Application de dépôt automatisé de documents métier.
 
+Le dépôt contient aujourd'hui le socle technique, l'authentification SSO SAML, le modèle de données,
+une première interface Angular et un worker BullMQ de démonstration. Le dépôt, l'analyse et
+l'automatisation Playwright décrits par la cible fonctionnelle ne sont pas encore implémentés. Cette
+distinction évite de confondre l'architecture prévue avec les fonctionnalités déjà disponibles.
+
 Le projet est initialisé en monorepo avec `pnpm` et `Turbo`. Il contient actuellement :
 
 - `apps/api` : API NestJS ;
@@ -18,6 +23,9 @@ Le projet est initialisé en monorepo avec `pnpm` et `Turbo`. Il contient actuel
 - Node.js, via `nvm`.
 - pnpm `11.8.0`.
 - Docker et Docker Compose, pour les services techniques locaux.
+- OpenSSL, pour générer les clés du Service Provider SAML.
+- `mkcert` et, sous Linux, `libnss3-tools`, pour faire confiance au certificat HTTPS local de la
+  stack conteneurisée.
 
 La version Node attendue est indiquée dans `.nvmrc`.
 
@@ -68,11 +76,11 @@ cp packages/database/.env.example packages/database/.env
 cp apps/worker/.env.example apps/worker/.env
 ```
 
-Le fichier racine configure PostgreSQL, Redis, MinIO et le simulateur SSO local
-Keycloak/OpenLDAP/phpLDAPadmin. Le fichier de l'API définit notamment son port, la connexion aux
-services techniques et les paramètres Better Auth (`BETTER_AUTH_URL`, `BETTER_AUTH_WEB_ORIGIN` et
-`BETTER_AUTH_SECRET`). Celui de Prisma fournit `DATABASE_URL`, et celui du worker définit
-`WORKER_PORT` et `NODE_ENV`. Ces fichiers ne doivent pas être commités.
+Le fichier racine configure Docker Compose : PostgreSQL, Redis, MinIO, le simulateur SSO local,
+Traefik, les noms d'hôtes et le secret Better Auth du conteneur API. Le fichier de l'API définit son
+port, ses connexions, Better Auth et SAML lors d'une exécution directe avec pnpm. Celui de Prisma
+fournit `DATABASE_URL`, et celui du worker définit `WORKER_PORT` et `NODE_ENV`. Ces fichiers ne
+doivent pas être commités.
 
 ## Lancer le projet
 
@@ -84,6 +92,18 @@ Dans un premier terminal, démarrer les services techniques et attendre leur dis
 pnpm infra:dev
 ```
 
+À la première installation, appliquer les migrations et créer le bucket brut attendu par la
+readiness de l'API :
+
+```bash
+pnpm database:migrate:deploy
+docker compose exec minio sh -c 'mc alias set app http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null && mc mb --ignore-existing app/documents-raw'
+```
+
+Si `MINIO_RAW_BUCKET` a été modifié, remplacer `documents-raw` par la même valeur. Le seed Prisma est
+optionnel et ne doit pas être mélangé sans précaution avec un test SSO, car son arborescence de
+développement est différente du LDIF complet.
+
 Dans un second terminal, lancer toutes les tâches de développement déclarées dans les workspaces :
 
 ```bash
@@ -92,6 +112,11 @@ pnpm dev
 
 `pnpm infra:dev` lance PostgreSQL, Redis, MinIO, OpenLDAP, phpLDAPadmin et Keycloak avec Docker
 Compose. `pnpm dev` lance l'API, le frontend, le worker et la documentation avec Turbo.
+
+Ce mode est adapté au développement isolé des workspaces. Le realm Keycloak fourni avec le dépôt
+enregistre les URLs SAML HTTPS de la stack conteneurisée ; le parcours SSO navigateur complet doit
+donc être testé avec `pnpm stack:dev` comme expliqué dans
+[`docs/getting-started/development.md`](docs/getting-started/development.md).
 
 Pour lancer l'API NestJS, le frontend Angular et le worker BullMQ sans démarrer l'infrastructure
 Docker ni la documentation :
@@ -111,7 +136,27 @@ En développement, le navigateur utilise l'origine publique du frontend (`http:/
 Le proxy Angular transmet `/api/**` à l'API sur le port `3000`, ce qui permet aux cookies de session
 de rester sur une même origine du point de vue du navigateur.
 
-## SSO Local
+### Stack HTTPS complète
+
+Pour tester l'application, Better Auth et le simulateur SSO de bout en bout :
+
+```bash
+mkcert -install
+pnpm tls:certificates:generate
+pnpm sso:certificates:generate
+pnpm stack:dev
+```
+
+`pnpm stack:dev` construit les images API et web, applique les migrations puis démarre toute la
+stack derrière Traefik. L'application est disponible sur
+`https://depot-numerique.localhost` et Keycloak sur
+`https://idp.depot-numerique.localhost`. Le fichier `.env` racine doit contenir un
+`BETTER_AUTH_SECRET` d'au moins 32 caractères.
+
+Le profil `app` applique les migrations automatiquement, mais il ne crée pas le bucket MinIO. Si la
+readiness renvoie `503` avec MinIO en échec, créer `documents-raw` avec la commande ci-dessus.
+
+## SSO local
 
 Le projet utilise en développement un simulateur SSO SAML local. OpenLDAP contient l'annuaire de test
 avec les utilisateurs, leurs rôles et leur rattachement métier (`bureauIGC`). Keycloak est configuré
@@ -119,17 +164,36 @@ comme fournisseur d'identité SAML et expose ces attributs à l'application.
 
 Les rôles applicatifs simulés sont :
 
-- `DEPOT_NUMERIQUE:ADMINISTRATEUR_GENERAL`
+- `DEPOT_NUMERIQUE:ADMINISTRATEUR_NATIONAL`
 - `DEPOT_NUMERIQUE:ADMINISTRATEUR_REGIONAL`
 - `DEPOT_NUMERIQUE:ADMINISTRATEUR_LOCAL`
 - `DEPOT_NUMERIQUE:AGENT`
 
+Ces quatre rôles sont mutuellement exclusifs pour l'application : une personne doit en posséder
+exactement un. L'attribut `roles` peut néanmoins contenir des profils d'autres applications.
+
 L'arborescence LDAP locale simule notamment la DSJ, les cours d'appel, les tribunaux judiciaires, les
 CPH au niveau des cours d'appel et les tribunaux de proximité sous leur tribunal judiciaire. Les
 comptes de test et les attributs SAML exposés sont documentés dans
-[docs/keycloak.md](docs/keycloak.md), avec le détail du simulateur dans [sso/README.md](sso/README.md).
+[docs/authentication/local-sso.md](docs/authentication/local-sso.md), avec le détail du simulateur
+dans [sso/README.md](sso/README.md).
 
-## Lancer Un Service Applicatif
+Les attributs suivent la chaîne `OpenLDAP -> Keycloak -> SAML -> Better Auth -> User` :
+
+- `igcid` rapproche durablement l'identité SSO du profil métier ;
+- `nom`, `prenom` et `mail` synchronisent les informations affichées ;
+- `roles` fournit exactement un rôle Dépôt Numérique ;
+- `bureauIGC` fournit le chemin technique de rattachement ;
+- `siteDescription` fournit le libellé lisible de la structure finale ;
+- `logonId` sert à la connexion Keycloak locale mais n'est pas la clé de rapprochement métier ;
+- `affectationOp2` à `affectationOp4` sont prévus par les mappers et transmis lorsqu'ils existent,
+  mais le jeu de comptes actuel ne les renseigne pas et l'application ne les exploite pas encore.
+
+Pour les utilisateurs autres que l'administrateur national, `bureauIGC` et `siteDescription` sont
+obligatoires. Le premier permet de déterminer les codes des structures ; le second évite d'afficher
+un identifiant technique à la place du nom de la juridiction.
+
+## Lancer un service applicatif
 
 API NestJS :
 
@@ -384,7 +448,7 @@ accompagnés d'un libellé complet. Les structures utilisent des codes SSO uniqu
 par exemple `00000001` pour la cour et `00000002` pour le tribunal de Lille. Ce jeu de données est
 destiné au développement et aux tests.
 
-La documentation détaillée se trouve dans [`docs/database.md`](docs/database.md).
+La documentation détaillée se trouve dans [`docs/data/database.md`](docs/data/database.md).
 
 ## Qualité de code
 
@@ -423,7 +487,8 @@ pnpm prepare
 
 ## Docker
 
-Docker Compose lance les services techniques utilisés en développement local.
+Docker Compose lance les services techniques utilisés en développement local. Le profil `app`
+ajoute les conteneurs applicatifs et l'exposition HTTPS.
 
 Services disponibles :
 
@@ -433,18 +498,28 @@ Services disponibles :
 - OpenLDAP : annuaire local simulant les utilisateurs et rattachements SRJ ;
 - phpLDAPadmin : interface graphique locale pour inspecter l'annuaire LDAP ;
 - Keycloak : fournisseur d'identité SAML local branché sur OpenLDAP ;
-- plus tard, images séparées pour l'API, le frontend et les workers.
+- `migrate` : conteneur ponctuel qui applique les migrations Prisma avant l'API ;
+- API : image Node.js dédiée, disponible avec le profil `app` ;
+- frontend : image Nginx non privilégiée dédiée, disponible avec le profil `app` ;
+- Traefik : terminaison TLS et routage par nom d'hôte et chemin avec le profil `app`.
+
+Le worker n'a pas encore de Dockerfile ni de service Compose. Il s'exécute actuellement avec pnpm.
+Nginx sert uniquement les fichiers statiques Angular et le fallback de la SPA ; Traefik reste le
+reverse proxy public qui choisit entre le frontend, l'API et Keycloak.
 
 Les versions d'images sont volontairement fixées dans `docker-compose.yml`. Ne pas utiliser `latest` pour les services d'infrastructure.
 
 Versions locales actuelles :
 
+- Traefik : `traefik:v3.7.1`
 - PostgreSQL : `postgres:17.10-bookworm`
 - Redis : `redis:7.4.9-bookworm`
 - MinIO : `minio/minio:RELEASE.2025-09-07T16-13-09Z`
 - OpenLDAP : `osixia/openldap:1.5.0`
 - phpLDAPadmin : `osixia/phpldapadmin:0.9.0`
 - Keycloak : `quay.io/keycloak/keycloak:26.6.4`
+- build API et web : `node:24-bookworm-slim`
+- runtime web : `nginxinc/nginx-unprivileged:1.29-alpine`
 
 Dependabot surveille les mises à jour Docker Compose, GitHub Actions et npm/pnpm via `.github/dependabot.yml`.
 
@@ -501,9 +576,11 @@ docker compose up -d --force-recreate --wait keycloak
 ```
 
 Après une modification du schéma ou du LDIF OpenLDAP, il faut recréer les volumes OpenLDAP locaux pour
-réimporter l'annuaire. Cette instance utilise `start-dev`, HTTP, une base H2 éphémère et des mots de
-passe publics de démonstration. Elle est strictement réservée au développement local. Consulter la
-documentation [SSO SAML local](docs/keycloak.md) pour les comptes, rôles, attributs SAML et
+réimporter l'annuaire. Keycloak utilise `start-dev` et une base H2 située dans son conteneur, sans
+volume nommé : ses données disparaissent lorsque le conteneur est supprimé et le realm est alors
+réimporté. Traefik chiffre le flux navigateur local, mais les échanges internes Docker avec Keycloak
+restent en HTTP. Les mots de passe sont publics et réservés à la démonstration. Consulter la
+documentation [SSO SAML local](docs/authentication/local-sso.md) pour les comptes, rôles, attributs SAML et
 procédures de test.
 
 Vérifier leur état :
@@ -530,8 +607,10 @@ Supprimer aussi les volumes locaux :
 docker compose down -v
 ```
 
-Attention : `docker compose down -v` supprime les données PostgreSQL, Redis et MinIO locales. Les
-données Keycloak sont éphémères et sont recréées depuis le fichier du realm.
+Attention : `docker compose down -v` supprime les volumes PostgreSQL, Redis, MinIO et OpenLDAP.
+`docker compose down` supprime également le conteneur Keycloak et donc sa base H2 éphémère. Au
+prochain démarrage, OpenLDAP rejoue le schéma et le LDIF, tandis que Keycloak réimporte
+`sso/keycloak/realm.json`.
 
 Accès locaux par défaut :
 
@@ -539,9 +618,10 @@ Accès locaux par défaut :
 - Redis : `localhost:6379`
 - MinIO API : `http://localhost:9000`
 - MinIO Console : `http://localhost:9001`
-- Keycloak : `http://localhost:8080`
+- Keycloak direct, infrastructure seule : `http://localhost:8080`
+- Keycloak via Traefik, profil `app` : `https://idp.depot-numerique.localhost`
 - OpenLDAP : `ldap://localhost:389`
-- phpLDAPAdmin : `http://localhost:8081`
+- phpLDAPadmin : `http://localhost:8081`
 
 Les identifiants locaux sont définis dans `.env`.
 
@@ -561,18 +641,40 @@ Le package documentation est déclaré comme workspace `@depot-numerique/docs` d
 
 La configuration VitePress utilise `base: '/depot-numerique/'` pour une publication GitHub Pages sur ce dépôt.
 
+Points d'entrée principaux :
+
+- démarrage : [`docs/getting-started/development.md`](docs/getting-started/development.md) et
+  [`docs/infrastructure/local-stack.md`](docs/infrastructure/local-stack.md) ;
+- architecture et composants :
+  [`docs/architecture/overview.md`](docs/architecture/overview.md),
+  [`docs/applications/api.md`](docs/applications/api.md),
+  [`docs/applications/frontend.md`](docs/applications/frontend.md),
+  [`docs/applications/worker.md`](docs/applications/worker.md) et
+  [`docs/data/database.md`](docs/data/database.md) ;
+- authentification :
+  [`docs/authentication/local-sso.md`](docs/authentication/local-sso.md) et
+  [`docs/authentication/saml.md`](docs/authentication/saml.md) ;
+- traitement : [`docs/processing/playwright.md`](docs/processing/playwright.md) ;
+- exploitation : [`docs/operations/security.md`](docs/operations/security.md),
+  [`docs/operations/runbook.md`](docs/operations/runbook.md) et
+  [`docs/operations/retention.md`](docs/operations/retention.md).
+
 ## Structure actuelle
 
 ```text
 apps/
-  api/    # API NestJS
-  web/    # Frontend Angular
-docs/     # Documentation VitePress
+  api/       # API NestJS et image applicative
+  web/       # Frontend Angular, Nginx et image applicative
+  worker/    # Worker NestJS/BullMQ de démonstration
+docs/        # Documentation VitePress
+infra/
+  traefik/   # Configuration statique et dynamique du reverse proxy
 packages/
   database/ # Schéma, migrations, seed et client Prisma
+sso/         # Realm Keycloak, schéma et données OpenLDAP
 ```
 
-## Stack
+## Stack actuelle et cible
 
 - Monorepo : `Turbo`
 - Gestionnaire de paquets : `pnpm`
@@ -583,11 +685,11 @@ packages/
 - ORM : `Prisma`
 - Queue et cache : `BullMQ`, `Redis`
 - Stockage fichiers : `MinIO`
-- SSO local : `Keycloak`, `OpenLDAP`, `phpLDAPAdmin`
-- Automatisation web : `Playwright`
+- SSO local : `Keycloak`, `OpenLDAP`, `phpLDAPadmin`
+- Automatisation web cible : `Playwright` — non intégrée à ce stade
 - Documentation API : `Swagger / OpenAPI`
 - Conteneurisation : `Docker`, `Docker Compose`
 - Qualité de code : `Biome`, `Knip`, `Lefthook`, `Commitlint`
 - CI/CD : `GitHub Actions`
-- Secrets : `Vault`
-- Supervision : `Prometheus`, `Grafana`
+- Secrets cible : `Vault` — non intégré à ce stade
+- Supervision cible : `Prometheus`, `Grafana` — non intégrés à ce stade

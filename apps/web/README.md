@@ -1,11 +1,49 @@
 # Frontend Dépôt Numérique
 
-Application Angular de Dépôt Numérique. Le frontend utilise le client Better Auth et communique avec
-l'API par des chemins relatifs sous `/api`.
+Application Angular de Dépôt Numérique. Le workspace contient actuellement la coque du frontend et
+le parcours d'authentification SSO automatique. Les écrans métier de dépôt, d'historique et
+d'administration ne sont pas encore implémentés.
 
-La documentation générale du développement se trouve dans [`docs/development.md`](../../docs/development.md).
+La documentation générale du développement se trouve dans
+[`docs/getting-started/development.md`](../../docs/getting-started/development.md) et la topologie
+conteneurisée dans
+[`docs/infrastructure/local-stack.md`](../../docs/infrastructure/local-stack.md).
 
-## Démarrage local
+## Structure
+
+```text
+apps/web/
+  src/app/
+    app.ts                       # État racine de l'authentification
+    app.html                     # États de chargement, redirection, erreur et contenu
+    app.routes.ts                # Routes Angular
+    auth/
+      auth.client.ts             # Client Better Auth relatif à l'origine courante
+      authentication.service.ts  # Vérification de session et redirection SSO
+  proxy.conf.json                # Proxy `/api/**` vers NestJS en mode `ng serve`
+  nginx/default.conf             # Serveur statique et fallback SPA du conteneur
+  Dockerfile                     # Build Angular puis runtime Nginx non privilégié
+```
+
+## Authentification
+
+Le client Better Auth ne déclare pas de `baseURL` : il utilise l'origine courante et appelle
+`/api/auth`. À l'ouverture de l'application, `AuthenticationService` :
+
+1. demande la session courante ;
+2. affiche l'application lorsqu'une session valide existe ;
+3. sinon, déclenche `signIn.sso` avec l'unique fournisseur SAML par défaut ;
+4. conserve l'URL courante comme URL de retour et d'erreur ;
+5. affiche un état fermé sans bouton de nouvelle tentative si le SSO renvoie une erreur.
+
+Il n'existe volontairement ni formulaire ni bouton de connexion local. Le frontend ne voit jamais
+l'assertion SAML : le navigateur la poste à l'ACS Better Auth de l'API, qui crée ensuite le cookie de
+session `HttpOnly`.
+
+Ce contrôle frontend protège l'affichage, pas l'autorisation. L'API applique indépendamment un garde
+Better Auth global à toutes ses routes métier.
+
+## Exécution directe
 
 Depuis la racine du monorepo :
 
@@ -14,34 +52,31 @@ pnpm install
 pnpm web:dev
 ```
 
-Le frontend est exposé sur `http://localhost:4200`.
+Angular est exposé sur `http://localhost:4200`. `proxy.conf.json` transmet `/api/**` vers
+`http://localhost:3000`, de sorte que le navigateur reste sur une origine unique pour les cookies.
 
-## Proxy vers l'API
+Le realm Keycloak versionné utilise les URLs HTTPS de la stack Docker. `ng serve` reste utile pour
+développer les composants, mais le parcours SSO complet doit être validé avec `pnpm stack:dev`.
 
-La configuration de développement transmet `/api/**` vers `http://localhost:3000`. Le navigateur
-reste ainsi sur l'origine `http://localhost:4200`, y compris pour Better Auth et ses cookies de
-session. À l'ouverture du site, Angular vérifie la session Better Auth et déclenche automatiquement
-le fournisseur SAML par défaut si elle est absente. Il n'existe volontairement pas de page ni de
-bouton de connexion ; la page applicative n'est rendue qu'après validation de la session. Le port
-`3000` est une cible interne au poste de développement et ne doit pas être utilisé comme URL publique
-par le client Angular.
+## Exécution conteneurisée
 
-Cette vérification frontend contrôle l'affichage et le parcours utilisateur ; elle ne constitue pas
-une autorisation de sécurité. L'API applique indépendamment un garde Better Auth global à ses routes
-métier.
+```bash
+pnpm tls:certificates:generate
+pnpm sso:certificates:generate
+pnpm stack:dev
+```
 
-En production conteneurisée, le reverse proxy sert le frontend et route `/api` vers NestJS sous une origine
-HTTPS publique commune.
+Le frontend est alors disponible sur `https://depot-numerique.localhost`. Traefik route
+`/api/**` vers NestJS et tout le reste vers le conteneur web.
 
-## Authentification
+Le Dockerfile est multi-stage : Node.js compile Angular, puis
+`nginxinc/nginx-unprivileged:1.29-alpine` sert uniquement les fichiers produits sur le port `8080`.
+Nginx gère le fallback de la SPA et le cache ; Traefik reste le reverse proxy public et termine TLS.
 
-Le client Better Auth est déclaré dans `src/app/auth/auth.client.ts`. Il utilise l'origine courante
-et appelle donc `/api/auth`. La redirection automatique vers le SSO est déclenchée par
-`AuthenticationService` lorsque la session est absente.
+Le dossier racine `patches` est copié avant l'installation, car le client utilise le plugin Better
+Auth SSO patché.
 
-## Commandes
-
-Les commandes sont lancées depuis la racine du monorepo :
+## Tests et commandes
 
 ```bash
 pnpm web:dev
@@ -54,3 +89,7 @@ pnpm web:format:check
 pnpm web:check
 pnpm web:check:fix
 ```
+
+Les tests vérifient la création du composant, son titre, l'absence d'affichage avant la validation de
+session et l'état d'erreur lorsque le SSO échoue. Ils mockent `AuthenticationService` : ils ne
+constituent pas un test SAML de bout en bout, lequel est couvert côté API et par la stack locale.
