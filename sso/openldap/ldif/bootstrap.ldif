@@ -76,21 +76,21 @@ objectClass: organizationalUnit
 ou: people
 description: Utilisateurs de test
 
-dn: uid=admin-general.sophie,ou=people,dc=justice,dc=fr
+dn: uid=admin-national.sophie,ou=people,dc=justice,dc=fr
 objectClass: top
 objectClass: person
 objectClass: organizationalPerson
 objectClass: inetOrgPerson
 objectClass: depotNumeriquePerson
-uid: admin-general.sophie
-cn: Sophie Admin general
-sn: Admin general
+uid: admin-national.sophie
+cn: Sophie Admin national
+sn: Admin national
 givenName: Sophie
-mail: admin-general.sophie@justice.fr
+mail: admin-national.sophie@justice.fr
 userPassword: password
 igcid: 00000001
-logonId: admin-general.sophie
-roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_GENERAL
+logonId: admin-national.sophie
+roles: DEPOT_NUMERIQUE:ADMINISTRATEUR_NATIONAL
 bureauIGC: ou=00000002,ou=00000001,ou=sites,dc=justice,dc=fr
 siteDescription: Direction des services judiciaires
 
