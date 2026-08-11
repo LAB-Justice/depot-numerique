@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "turbo dev",
     "infra:dev": "docker compose up -d --wait",
+    "stack:dev": "docker compose --profile app up -d --build --wait",
     "apps:dev": "turbo dev --filter api --filter web --filter worker",
     "api:dev": "turbo dev --filter api",
     "web:dev": "turbo dev --filter web",
