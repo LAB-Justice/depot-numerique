@@ -15,36 +15,38 @@ describe('Request ID (e2e)', () => {
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication({
+      bodyParser: false,
+    });
     configureApp(app);
 
     await app.init();
   });
 
-  it('should generate a request ID when none is provided', async () => {
-    const response = await request(app.getHttpServer()).get('/api/v1').expect(200);
+  it('should generate a request ID on a successful request when none is provided', async () => {
+    const response = await request(app.getHttpServer()).get('/api/health/live').expect(200);
 
     expect(response.headers['x-request-id']).toMatch(UUID_PATTERN);
   });
 
-  it('should preserve a valid request ID', async () => {
+  it('should preserve a valid request ID on a successful request', async () => {
     const requestId = 'gateway-request_123';
 
     const response = await request(app.getHttpServer())
-      .get('/api/v1')
+      .get('/api/health/live')
       .set('X-Request-Id', requestId)
       .expect(200);
 
     expect(response.headers['x-request-id']).toBe(requestId);
   });
 
-  it('should replace an invalid request ID', async () => {
+  it('should replace an invalid request ID even when authentication rejects the request', async () => {
     const invalidRequestId = 'invalid request id';
 
     const response = await request(app.getHttpServer())
       .get('/api/v1')
       .set('X-Request-Id', invalidRequestId)
-      .expect(200);
+      .expect(401);
 
     expect(response.headers['x-request-id']).not.toBe(invalidRequestId);
     expect(response.headers['x-request-id']).toMatch(UUID_PATTERN);

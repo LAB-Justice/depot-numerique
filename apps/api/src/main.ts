@@ -9,6 +9,7 @@ import { configureSwagger } from './bootstrap/configure-swagger';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
+    bodyParser: false,
   });
 
   app.useLogger(app.get(PinoLogger));

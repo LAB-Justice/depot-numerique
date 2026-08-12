@@ -9,7 +9,7 @@ interface StructureSeed {
 }
 
 interface UserSeed {
-  igcidHash: string;
+  igcId: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -70,14 +70,14 @@ const serviceData: Prisma.ServiceCreateWithoutStructureInput[] = [
 
 const userData: UserSeed[] = [
   {
-    igcidHash: 'a'.repeat(64),
+    igcId: '00000001',
     firstName: 'Alice',
     lastName: 'Administration',
-    email: 'alice.admin-general@example.invalid',
-    role: UserRole.ADMINISTRATEUR_GENERAL,
+    email: 'alice.admin-national@example.invalid',
+    role: UserRole.ADMINISTRATEUR_NATIONAL,
   },
   {
-    igcidHash: 'b'.repeat(64),
+    igcId: '00000002',
     firstName: 'Rémi',
     lastName: 'Régional',
     email: 'remi.admin-regional@example.invalid',
@@ -86,7 +86,7 @@ const userData: UserSeed[] = [
     adminStructureSsoCode: '00000001',
   },
   {
-    igcidHash: 'c'.repeat(64),
+    igcId: '00000003',
     firstName: 'Louise',
     lastName: 'Locale',
     email: 'louise.admin-local@example.invalid',
@@ -95,7 +95,7 @@ const userData: UserSeed[] = [
     adminStructureSsoCode: '00000002',
   },
   {
-    igcidHash: 'd'.repeat(64),
+    igcId: '00000019',
     firstName: 'Amandine',
     lastName: 'Agent',
     email: 'amandine.agent@example.invalid',
@@ -104,7 +104,7 @@ const userData: UserSeed[] = [
     serviceSlug: 'baj',
   },
   {
-    igcidHash: 'e'.repeat(64),
+    igcId: '00000008',
     firstName: 'Thomas',
     lastName: 'Proximité',
     email: 'thomas.admin-tprox@example.invalid',
@@ -113,7 +113,7 @@ const userData: UserSeed[] = [
     adminStructureSsoCode: '00000005',
   },
   {
-    igcidHash: 'f'.repeat(64),
+    igcId: '00000016',
     firstName: 'Claire',
     lastName: 'Cour',
     email: 'claire.admin-ca@example.invalid',
@@ -122,7 +122,7 @@ const userData: UserSeed[] = [
     adminStructureSsoCode: '00000001',
   },
   {
-    igcidHash: 'g'.repeat(64),
+    igcId: '00000020',
     firstName: 'Camille',
     lastName: 'Appel',
     email: 'camille.agent-ca@example.invalid',
@@ -222,7 +222,7 @@ export async function main(): Promise<void> {
             : null;
 
         await transaction.user.upsert({
-          where: { igcidHash: userInput.igcidHash },
+          where: { igcId: userInput.igcId },
           update: {
             firstName: userInput.firstName,
             lastName: userInput.lastName,
@@ -234,7 +234,7 @@ export async function main(): Promise<void> {
             serviceId: service?.id ?? null,
           },
           create: {
-            igcidHash: userInput.igcidHash,
+            igcId: userInput.igcId,
             firstName: userInput.firstName,
             lastName: userInput.lastName,
             email: userInput.email,

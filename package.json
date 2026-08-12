@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "turbo dev",
     "infra:dev": "docker compose up -d --wait",
+    "stack:dev": "docker compose --profile app up -d --build --wait",
     "apps:dev": "turbo dev --filter api --filter web --filter worker",
     "api:dev": "turbo dev --filter api",
     "web:dev": "turbo dev --filter web",
@@ -78,7 +79,9 @@
     "database:migrate:deploy": "pnpm --filter @depot-numerique/database migrate:deploy",
     "database:migrate:status": "pnpm --filter @depot-numerique/database migrate:status",
     "database:seed": "pnpm --filter @depot-numerique/database seed",
-    "database:studio": "pnpm --filter @depot-numerique/database studio"
+    "database:studio": "pnpm --filter @depot-numerique/database studio",
+    "sso:certificates:generate": "bash scripts/sso/generate-sp-certificates.sh",
+    "tls:certificates:generate": "bash scripts/tls/generate-local-certificates.sh"
   },
   "keywords": [],
   "author": "",

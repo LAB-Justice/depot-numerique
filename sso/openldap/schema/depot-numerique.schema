@@ -30,6 +30,14 @@ attributetype ( 1.3.6.1.4.1.55555.1.4
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
   SINGLE-VALUE )
 
+attributetype ( 1.3.6.1.4.1.55555.1.8
+  NAME 'siteDescription'
+  DESC 'Libelle du rattachement operationnel principal'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  SINGLE-VALUE )
+
 attributetype ( 1.3.6.1.4.1.55555.1.5
   NAME 'affectationOp2'
   DESC 'DN du rattachement operationnel secondaire 2'
@@ -56,4 +64,4 @@ objectclass ( 1.3.6.1.4.1.55555.2.1
   DESC 'Attributs locaux simulant le contrat LDAP SSO intranet'
   SUP top
   AUXILIARY
-  MAY ( igcid $ logonId $ roles $ bureauIGC $ affectationOp2 $ affectationOp3 $ affectationOp4 ) )
+  MAY ( igcid $ logonId $ roles $ bureauIGC $ siteDescription $ affectationOp2 $ affectationOp3 $ affectationOp4 ) )

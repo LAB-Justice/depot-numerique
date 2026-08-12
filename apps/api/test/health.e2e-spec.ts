@@ -1,5 +1,6 @@
+import { jest } from '@jest/globals';
 import type { INestApplication } from '@nestjs/common';
-import { PrismaHealthIndicator } from '@nestjs/terminus';
+import { type HealthIndicatorResult, PrismaHealthIndicator } from '@nestjs/terminus';
 import { Test, type TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types';
@@ -8,16 +9,20 @@ import { configureApp } from './../src/bootstrap/configure-app';
 import { MinioHealthIndicator } from './../src/core/health/minio.health-indicator';
 import { RedisHealthIndicator } from './../src/core/health/redis.health-indicator';
 
+type HealthIndicatorMock<Key extends string> = (
+  ...args: unknown[]
+) => Promise<HealthIndicatorResult<Key>>;
+
 const prismaHealthIndicator = {
-  pingCheck: jest.fn(),
+  pingCheck: jest.fn<HealthIndicatorMock<'postgresql'>>(),
 };
 
 const redisHealthIndicator = {
-  isHealthy: jest.fn(),
+  isHealthy: jest.fn<HealthIndicatorMock<'redis'>>(),
 };
 
 const minioHealthIndicator = {
-  isHealthy: jest.fn(),
+  isHealthy: jest.fn<HealthIndicatorMock<'minio'>>(),
 };
 
 describe('Health (e2e)', () => {
@@ -35,7 +40,9 @@ describe('Health (e2e)', () => {
       .useValue(minioHealthIndicator)
       .compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication({
+      bodyParser: false,
+    });
     configureApp(app);
 
     await app.init();

@@ -1,3 +1,4 @@
+@if (authenticationState() === 'authenticated') {
 <main class="shell">
   <section class="hero" aria-labelledby="page-title">
     <p class="eyebrow">Dépôt Numérique</p>
@@ -9,3 +10,23 @@
 </main>
 
 <router-outlet />
+} @else {
+<main class="shell">
+  <section class="auth-status" aria-live="polite">
+    <p class="eyebrow">Dépôt Numérique</p>
+    @if (authenticationState() === 'error') {
+    <h1>Connexion impossible</h1>
+    <p class="intro">
+      L’authentification SSO n’a pas abouti. Fermez cet onglet puis ouvrez à nouveau l’application.
+      Si le problème persiste, contactez le support.
+    </p>
+    } @else {
+    <h1>Connexion sécurisée</h1>
+    <p class="intro">
+      @if (authenticationState() === 'checking') { Vérification de votre session… } @else {
+      Redirection vers le service d’authentification… }
+    </p>
+    }
+  </section>
+</main>
+}

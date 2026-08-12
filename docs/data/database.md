@@ -1,8 +1,9 @@
 # Base de données
 
 Le workspace `@depot-numerique/database`, situé dans `packages/database`, centralise le schéma
-Prisma, le client généré, les migrations et les données de développement partagées par l'API et
-les futurs workers.
+Prisma, le client généré, les migrations et les données de développement partagées par l'API et les
+futurs workers métier. Les tables documentaires décrivent le socle prévu ; aucune route de dépôt ne
+les alimente encore.
 
 ## Structure
 
@@ -46,8 +47,13 @@ commité. En recette et en production, `DATABASE_URL` est injectée par l'orches
 Le schéma contient :
 
 - `Structure` : structure judiciaire connue du SSO, hiérarchisée et activée dans l'application ;
-- `User` : utilisateur SSO pseudonymisé, avec son état actif, son rôle, sa structure de travail,
-  son éventuel périmètre d'administration et son éventuel service ;
+- `AuthIdentity` : identité technique utilisée par Better Auth ;
+- `AuthSession` : session Better Auth persistée, avec son jeton et son expiration ;
+- `AuthAccount` : compte d'un fournisseur d'identité relié à une identité Better Auth ;
+- `AuthVerification` : valeur de vérification temporaire gérée par Better Auth ;
+- `AuthSsoProvider` : configuration de fournisseur créée par le plugin SSO Better Auth ;
+- `User` : profil métier SSO, avec son `igcId` stable, son état actif, son rôle, sa structure de
+  travail, son éventuel périmètre d'administration et son éventuel service ;
 - `Service` : service créé dans l'application et rattaché à une structure ;
 - `Document` : dépôt métier, type `LS` ou `LR`, statut et utilisateur créateur ;
 - `DocumentFile` : référence d'un fichier MinIO avec bucket, clé objet, taille et checksum SHA-256.
@@ -70,18 +76,21 @@ Un utilisateur possède deux rattachements distincts :
 
 Ces deux valeurs peuvent être différentes. Par exemple, un administrateur régional travaillant au
 tribunal judiciaire de Lille peut avoir `workStructureId` sur le TJ de Lille et `adminStructureId`
-sur la cour d'appel de Douai. Les administrateurs généraux n'ont pas besoin de périmètre
-`adminStructureId`, car leur rôle donne un accès global. Les agents et les administrateurs qui
-déposent des documents utilisent leur `workStructureId` et leur `serviceId`.
+sur la cour d'appel de Douai. Les administrateurs nationaux n'ont pas besoin de périmètre
+`adminStructureId`, car leur rôle donne un accès global. Les quatre rôles applicatifs sont
+mutuellement exclusifs : chaque utilisateur possède exactement une valeur de `UserRole`. Les agents
+et les administrateurs qui déposent des documents utilisent leur `workStructureId` et leur
+`serviceId`.
 
-Un utilisateur peut être affecté à un service de sa structure de travail. La cohérence entre
-`User.workStructureId` et la structure de `User.serviceId` est contrôlée par la logique applicative
-lors de l'affectation.
+Un utilisateur peut être affecté à un service de sa structure de travail. La future route
+d'affectation devra vérifier que `User.serviceId` appartient à `User.workStructureId`. Le
+provisioning SSO protège déjà un cas important : si la structure de travail change, il remet
+`serviceId` à `null`.
 
 Le périmètre d'administration est déduit du rôle et du niveau de `adminStructureId`, sans champ de
 scope dédié :
 
-- `ADMINISTRATEUR_GENERAL` : accès global, sans `adminStructureId` obligatoire ;
+- `ADMINISTRATEUR_NATIONAL` : accès global, sans `adminStructureId` obligatoire ;
 - `ADMINISTRATEUR_REGIONAL` : `adminStructureId` doit viser une structure `REGIONAL` et donne accès
   à cette cour d'appel et à tous ses descendants ;
 - `ADMINISTRATEUR_LOCAL` avec une structure `REGIONAL` : accès limité à cette cour d'appel et à ses
@@ -99,11 +108,55 @@ donc obtenue par `Document -> Service -> Structure`. La suppression physique d'u
 créé un document est interdite afin de préserver l'identité du déposant. `User.isActive` permet de
 révoquer son accès sans supprimer son historique.
 
-L'identifiant IGC n'est jamais enregistré en clair : seul son HMAC-SHA-256 est conservé dans
-`User.igcidHash`. Le DN LDAP `bureauIGC` n'est pas stocké ; il sert uniquement à calculer
-`workStructureId` et `adminStructureId` lors de la connexion. Le rôle, les rattachements calculés et
-`lastLoginAt` sont synchronisés à chaque connexion. Un utilisateur désactivé doit rester bloqué tant
-qu'une décision métier explicite ne l'a pas réactivé.
+`User.igcId` conserve en clair l'identifiant stable fourni par l'annuaire. Il n'est pas hashé, car il
+sert à retrouver le même profil lorsque le nom ou l'adresse électronique de la personne change. Il
+reste une donnée interne : il ne doit pas être placé dans une URL publique, exposé sans besoin métier
+ou écrit dans les logs. Le DN LDAP `bureauIGC` n'est pas stocké : il est validé et utilisé à chaque
+connexion pour provisionner les structures par leur `ssoCode`, puis recalculer `workStructureId` et
+`adminStructureId`. Le prénom, le nom, l'email, le rôle, `lastLoginAt` et les rattachements sont donc
+synchronisés à chaque connexion. Si la structure de travail change, `serviceId` est remis à `null`
+afin de ne pas conserver un service appartenant à l'ancienne structure. Un utilisateur
+désactivé doit rester bloqué tant qu'une décision métier explicite ne l'a pas réactivé.
+
+Pour un utilisateur autre que l'administrateur national, `bureauIGC` et `siteDescription` sont deux
+claims complémentaires et obligatoires. `bureauIGC` fournit les codes techniques ;
+`siteDescription` fournit le libellé de la structure finale. Le DN et le libellé brut ne sont pas
+stockés sur `User` : ils servent à créer ou actualiser `Structure`, puis les relations de l'utilisateur
+référencent cette structure.
+
+Le provisioning actuel conserve la cour comme niveau `REGIONAL`. Toute affectation plus profonde est
+enregistrée comme `JURISDICTION` directement sous cette cour, même si le LDAP contient une
+sous-juridiction. Le niveau `SUB_JURISDICTION` existe dans le schéma et dans le seed mais le
+provisioning SSO ne reconstruit pas encore tous les niveaux intermédiaires.
+
+### Identité Better Auth et profil métier
+
+`AuthVerification.identifier` possède aussi un index unique partiel pour les préfixes
+`saml-authn-request:` et `saml-used-assertion:`. Il garantit l'atomicité de la corrélation et de la
+protection anti-rejeu SAML, tout en autorisant plusieurs entrées `saml-session:` pour un même
+utilisateur.
+
+Prisma exige `previewFeatures = ["partialIndexes"]` dans le générateur pour représenter la clause
+`where` de cet index dans `schema.prisma`. Cette option concerne la description Prisma de l'index ;
+PostgreSQL applique la contrainte réelle créée par la migration SQL.
+
+`AuthIdentity` et `User` ont des responsabilités distinctes. Better Auth gère l'identité technique,
+les comptes fournisseurs et les sessions ; `User` porte les autorisations et les données métier de
+l'application. La relation optionnelle et unique `User.authIdentityId` forme un lien un-à-un. Elle
+reste optionnelle pendant la transition et pour permettre au seed métier d'exister avant la première
+connexion SSO.
+
+`AuthSession.userId`, `AuthAccount.userId` et `AuthSsoProvider.userId` sont des clés étrangères vers
+`AuthIdentity.id`. La
+suppression d'une identité supprime ses sessions et ses comptes techniques, tandis que la relation
+depuis `User` utilise `Restrict` afin d'éviter la perte accidentelle du lien avec l'historique métier.
+L'association au retour du SSO devra rechercher `User.igcId`, et non `User.email`. Le compte SSO
+Better Auth devra lui aussi utiliser l'identifiant fournisseur stable comme `accountId`.
+
+Toutes les clés primaires de ces tables sont des UUID PostgreSQL. Le schéma fournit
+`@default(uuid())` pour les créations Prisma et Better Auth est configuré avec
+`advanced.database.generateId = 'uuid'` pour ses propres créations. Cette option ne concerne pas
+`igcId`, qui reste la valeur stable reçue de l'annuaire.
 
 PostgreSQL ne contient pas les fichiers. `DocumentFile` conserve uniquement `bucket` et `objectKey`,
 utilisés par l'API pour accéder à l'objet MinIO.
@@ -193,6 +246,20 @@ Avec Prisma 7, le seed est explicite : il n'est pas exécuté automatiquement pa
 pnpm database:seed
 ```
 
+Les sept utilisateurs métier du seed emploient des `igcId` présents dans l'annuaire OpenLDAP local,
+afin de pouvoir être rapprochés lors d'une connexion SSO. Ils ne créent pas de lignes Better Auth :
+`AuthIdentity`, `AuthAccount` et `AuthSession` sont créées par le premier flux d'authentification, puis
+le profil `User` existant est synchronisé par `igcid`.
+
+::: warning Seed Prisma et annuaire SSO
+Le seed Prisma utilise une hiérarchie autonome et simplifiée dont les codes `Structure.ssoCode`
+`00000001` à `00000005` n'ont pas la même signification que les codes de l'arborescence OpenLDAP
+complète. Il sert à développer le modèle et les futures routes métier. Pour un test propre du
+provisioning SSO, utiliser une base migrée mais non seedée, ou réinitialiser la base locale avant le
+parcours. Mélanger les deux jeux dans la même base peut conduire le provisioning à réaffecter des
+structures portant déjà ces codes.
+:::
+
 ## Règles de production
 
 - Une seule instance de `PrismaClient` est utilisée par processus API ou worker.
@@ -202,3 +269,4 @@ pnpm database:seed
 - Les connexions de production utilisent TLS selon la configuration de l'infrastructure.
 - `DATABASE_URL` provient de Vault ou d'un mécanisme de secrets de l'orchestrateur.
 - Les URLs de connexion, mots de passe et données documentaires ne sont jamais journalisés.
+- Les jetons de session, cookies, claims SSO et `igcId` ne sont jamais journalisés.

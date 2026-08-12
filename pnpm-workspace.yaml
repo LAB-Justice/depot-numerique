@@ -12,3 +12,5 @@ allowBuilds:
   msgpackr-extract: true
   prisma: true
   unrs-resolver: true
+patchedDependencies:
+  "@better-auth/sso": patches/@better-auth__sso.patch

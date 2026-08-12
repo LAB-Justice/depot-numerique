@@ -7,6 +7,10 @@ const REQUIRED_ENV = {
   MINIO_ENDPOINT: 'localhost',
   MINIO_ACCESS_KEY: 'test',
   MINIO_SECRET_KEY: 'test',
+  BETTER_AUTH_URL: 'http://localhost:4200',
+  BETTER_AUTH_SECRET: 'test-secret-with-at-least-32-characters',
+  BETTER_AUTH_WEB_ORIGIN: 'http://localhost:4200',
+  SSO_IDP_METADATA_URL: 'http://localhost:8080/realms/depot-numerique/protocol/saml/descriptor',
 } as const;
 
 describe('environmentSchema', () => {
@@ -25,6 +29,13 @@ describe('environmentSchema', () => {
       MINIO_PORT: 9000,
       MINIO_USE_SSL: false,
       MINIO_RAW_BUCKET: 'documents-raw',
+      SSO_DOMAIN: 'justice.fr',
+      SSO_PROVIDER_ID: 'justice-saml',
+      SSO_SP_ENCRYPTION_CERTIFICATE_PATH: '../../.secrets/saml/sp-encryption-certificate.pem',
+      SSO_SP_ENCRYPTION_PRIVATE_KEY_PATH: '../../.secrets/saml/sp-encryption-private-key.pem',
+      SSO_SP_ENTITY_ID: 'depot-numerique',
+      SSO_SP_SIGNING_CERTIFICATE_PATH: '../../.secrets/saml/sp-signing-certificate.pem',
+      SSO_SP_SIGNING_PRIVATE_KEY_PATH: '../../.secrets/saml/sp-signing-private-key.pem',
     });
   });
 
@@ -145,6 +156,66 @@ describe('environmentSchema', () => {
         }),
         expect.objectContaining({
           path: ['MINIO_RAW_BUCKET'],
+        }),
+      ]),
+    );
+  });
+
+  it('should reject an invalid Better Auth configuration', () => {
+    const { error } = environmentSchema.validate(
+      {
+        ...REQUIRED_ENV,
+        BETTER_AUTH_URL: 'invalid-url',
+        BETTER_AUTH_SECRET: 'too-short',
+        BETTER_AUTH_WEB_ORIGIN: 'invalid-origin',
+      },
+      {
+        abortEarly: false,
+      },
+    );
+
+    expect(error?.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: ['BETTER_AUTH_URL'],
+        }),
+        expect.objectContaining({
+          path: ['BETTER_AUTH_SECRET'],
+        }),
+        expect.objectContaining({
+          path: ['BETTER_AUTH_WEB_ORIGIN'],
+        }),
+      ]),
+    );
+  });
+
+  it('should reject an invalid SAML SSO configuration', () => {
+    const { error } = environmentSchema.validate(
+      {
+        ...REQUIRED_ENV,
+        SSO_PROVIDER_ID: 'INVALID PROVIDER',
+        SSO_DOMAIN: 'invalid domain',
+        SSO_SP_ENTITY_ID: '',
+        SSO_IDP_METADATA_URL: 'invalid-url',
+      },
+      {
+        abortEarly: false,
+      },
+    );
+
+    expect(error?.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: ['SSO_PROVIDER_ID'],
+        }),
+        expect.objectContaining({
+          path: ['SSO_DOMAIN'],
+        }),
+        expect.objectContaining({
+          path: ['SSO_SP_ENTITY_ID'],
+        }),
+        expect.objectContaining({
+          path: ['SSO_IDP_METADATA_URL'],
         }),
       ]),
     );

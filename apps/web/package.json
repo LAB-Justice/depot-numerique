@@ -13,7 +13,8 @@
     "check:fix": "biome check --write .",
     "typecheck": "ngc -p tsconfig.app.json --noEmit",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test --watch=false",
+    "test:watch": "ng test"
   },
   "private": true,
   "packageManager": "pnpm@11.8.0",
@@ -23,6 +24,8 @@
     "@angular/core": "^22.0.0",
     "@angular/platform-browser": "^22.0.0",
     "@angular/router": "^22.0.0",
+    "@better-auth/sso": "1.6.23",
+    "better-auth": "^1.6.23",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

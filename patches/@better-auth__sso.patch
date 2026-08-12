@@ -1,0 +1,159 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 23dea5944c82d7d187961a182efdcdf12aee853f..14b22af 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -25,6 +25,8 @@ import samlifyDefault from "samlify";
+ */
+ /** Prefix for AuthnRequest IDs used in InResponseTo validation */
+ const AUTHN_REQUEST_KEY_PREFIX = "saml-authn-request:";
++/** Prefix for one-time HTTP-POST AuthnRequest bridge records */
++const SAML_POST_REQUEST_KEY_PREFIX = "saml-post-request:";
+ /** Prefix for SAML session data (NameID + SessionIndex) for SLO */
+ const SAML_SESSION_KEY_PREFIX = "saml-session:";
+ /** Prefix for reverse lookup of SAML session by Better Auth session ID */
+@@ -1818,8 +1820,16 @@ function createSAMLPostForm(action, samlParam, samlValue, relayState) {
+ 	const safeSamlParam = escapeHtml(samlParam);
+ 	const safeSamlValue = escapeHtml(samlValue);
+ 	const safeRelayState = relayState ? escapeHtml(relayState) : void 0;
+-	const html = `<!DOCTYPE html><html><body onload="document.forms[0].submit();"><form method="POST" action="${safeAction}"><input type="hidden" name="${safeSamlParam}" value="${safeSamlValue}" />${safeRelayState ? `<input type="hidden" name="RelayState" value="${safeRelayState}" />` : ""}<noscript><input type="submit" value="Continue" /></noscript></form></body></html>`;
+-	return new Response(html, { headers: { "Content-Type": "text/html" } });
++	const nonce = generateRandomString(32);
++	const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>SSO</title></head><body><form method="POST" action="${safeAction}"><input type="hidden" name="${safeSamlParam}" value="${safeSamlValue}" />${safeRelayState ? `<input type="hidden" name="RelayState" value="${safeRelayState}" />` : ""}<noscript><input type="submit" value="Continue" /></noscript></form><script nonce="${nonce}">document.forms[0].submit();</script></body></html>`;
++	const formAction = new URL(action).origin;
++	return new Response(html, { headers: {
++		"Cache-Control": "no-store",
++		"Content-Security-Policy": `default-src 'none'; base-uri 'none'; form-action ${formAction}; frame-ancestors 'none'; script-src 'nonce-${nonce}'`,
++		"Content-Type": "text/html; charset=utf-8",
++		"Referrer-Policy": "no-referrer",
++		"X-Content-Type-Options": "nosniff"
++	} });
+ }
+ //#endregion
+ //#region src/saml/timestamp.ts
+@@ -2023,7 +2033,7 @@ async function processSAMLResponse(ctx, params, options) {
+ 			error_description: "SAML response binding could not be validated"
+ 		}));
+ 	}
+-	const inResponseTo = extract.inResponseTo;
++	const inResponseTo = extract?.response?.inResponseTo;
+ 	if (options?.saml?.enableInResponseToValidation !== false) {
+ 		const allowIdpInitiated = options?.saml?.allowIdpInitiated !== false;
+ 		if (inResponseTo) {
+@@ -2069,17 +2079,25 @@ async function processSAMLResponse(ctx, params, options) {
+ 		const conditions = extract.conditions;
+ 		const clockSkew = options?.saml?.clockSkew ?? 3e5;
+ 		const expiresAt = conditions?.notOnOrAfter ? new Date(conditions.notOnOrAfter).getTime() + clockSkew : Date.now() + DEFAULT_ASSERTION_TTL_MS;
+-		if (!await ctx.context.internalAdapter.reserveVerificationValue({
+-			identifier: `saml-used-assertion:${assertionId}`,
+-			value: JSON.stringify({
+-				assertionId,
+-				issuer,
+-				providerId,
+-				usedAt: Date.now(),
+-				expiresAt
+-			}),
+-			expiresAt: new Date(expiresAt)
+-		})) {
++		const assertionIdentifier = `saml-used-assertion:${assertionId}`;
++		let assertionReserved = false;
++		try {
++			await ctx.context.internalAdapter.createVerificationValue({
++				identifier: assertionIdentifier,
++				value: JSON.stringify({
++					assertionId,
++					issuer,
++					providerId,
++					usedAt: Date.now(),
++					expiresAt
++				}),
++				expiresAt: new Date(expiresAt)
++			});
++			assertionReserved = true;
++		} catch (error) {
++			if (!await ctx.context.internalAdapter.findVerificationValue(assertionIdentifier)) throw error;
++		}
++		if (!assertionReserved) {
+ 			ctx.context.logger.error("SAML assertion replay detected: assertion ID already used", {
+ 				assertionId,
+ 				issuer,
+@@ -2780,7 +2798,7 @@ const signInSSO = (options) => {
+ 		});
+ 		let provider = null;
+ 		if (options?.defaultSSO?.length) {
+-			const matchingDefault = providerId ? options.defaultSSO.find((defaultProvider) => defaultProvider.providerId === providerId) : options.defaultSSO.find((defaultProvider) => domain && domainMatches(domain, defaultProvider.domain));
++			const matchingDefault = providerId ? options.defaultSSO.find((defaultProvider) => defaultProvider.providerId === providerId) : domain ? options.defaultSSO.find((defaultProvider) => domainMatches(domain, defaultProvider.domain)) : options.defaultSSO.length === 1 ? options.defaultSSO[0] : void 0;
+ 			if (matchingDefault) provider = {
+ 				issuer: matchingDefault.samlConfig?.issuer || matchingDefault.oidcConfig?.issuer || "",
+ 				providerId: matchingDefault.providerId,
+@@ -2791,7 +2809,7 @@ const signInSSO = (options) => {
+ 				...options.domainVerification?.enabled ? { domainVerified: true } : {}
+ 			};
+ 		}
+-		if (!providerId && !orgId && !domain) throw new APIError("BAD_REQUEST", { message: "providerId, orgId or domain is required" });
++		if (!provider && !providerId && !orgId && !domain) throw new APIError("BAD_REQUEST", { message: "providerId, orgId or domain is required when multiple default providers are configured" });
+ 		if (!provider) {
+ 			const parseProvider = (res) => {
+ 				if (!res) return null;
+@@ -2904,8 +2922,8 @@ const signInSSO = (options) => {
+ 				encPrivateKey: normalizePem(idpData.encPrivateKey),
+ 				encPrivateKeyPass: idpData.encPrivateKeyPass
+ 			});
+-			const loginRequest = sp.createLoginRequest(idp, "redirect");
+-			if (!loginRequest) throw new APIError("BAD_REQUEST", { message: "Invalid SAML request" });
++			const loginRequest = sp.createLoginRequest(idp, "post");
++			if (!loginRequest?.entityEndpoint) throw new APIError("BAD_REQUEST", { message: "Invalid SAML POST request" });
+ 			if (loginRequest.id && options?.saml?.enableInResponseToValidation !== false) {
+ 				const ttl = options?.saml?.requestTTL ?? 3e5;
+ 				const record = {
+@@ -2920,14 +2938,42 @@ const signInSSO = (options) => {
+ 					expiresAt: new Date(record.expiresAt)
+ 				});
+ 			}
++			const ttl = options?.saml?.requestTTL ?? 3e5;
++			const postToken = generateRandomString(32);
++			await ctx.context.internalAdapter.createVerificationValue({
++				identifier: `${SAML_POST_REQUEST_KEY_PREFIX}${postToken}`,
++				value: JSON.stringify({
++					action: loginRequest.entityEndpoint,
++					relayState: loginRequest.relayState,
++					samlRequest: loginRequest.context
++				}),
++				expiresAt: new Date(Date.now() + ttl)
++			});
+ 			return ctx.json({
+-				url: loginRequest.context,
++				url: `${ctx.context.baseURL}/sso/saml2/sp/post/${encodeURIComponent(postToken)}`,
+ 				redirect: true
+ 			});
+ 		}
+ 		throw new APIError("BAD_REQUEST", { message: "Invalid SSO provider" });
+ 	});
+ };
++const samlPostRequest = () => {
++	return createAuthEndpoint("/sso/saml2/sp/post/:token", {
++		method: "GET",
++		metadata: HIDE_METADATA
++	}, async (ctx) => {
++		const identifier = `${SAML_POST_REQUEST_KEY_PREFIX}${ctx.params.token}`;
++		const stored = await ctx.context.internalAdapter.findVerificationValue(identifier);
++		if (!stored || stored.expiresAt.getTime() <= Date.now()) {
++			if (stored) await ctx.context.internalAdapter.deleteVerificationByIdentifier(identifier);
++			throw new APIError("BAD_REQUEST", { message: "SAML POST request is invalid or expired" });
++		}
++		await ctx.context.internalAdapter.deleteVerificationByIdentifier(identifier);
++		const request = safeJsonParse(stored.value);
++		if (!request || typeof request.action !== "string" || typeof request.samlRequest !== "string" || request.relayState !== void 0 && typeof request.relayState !== "string") throw new APIError("BAD_REQUEST", { message: "SAML POST request is invalid" });
++		return createSAMLPostForm(request.action, "SAMLRequest", request.samlRequest, request.relayState);
++	});
++};
+ const callbackSSOQuerySchema = z.object({
+ 	code: z.string().optional(),
+ 	state: z.string(),
+@@ -3438,6 +3484,7 @@ function sso(options) {
+ 		spMetadata: spMetadata(optionsWithStore),
+ 		registerSSOProvider: registerSSOProvider(optionsWithStore),
+ 		signInSSO: signInSSO(optionsWithStore),
++		samlPostRequest: samlPostRequest(),
+ 		callbackSSO: callbackSSO(optionsWithStore),
+ 		callbackSSOShared: callbackSSOShared(optionsWithStore),
+ 		callbackSSOSAML: callbackSSOSAML(optionsWithStore),

@@ -1,0 +1,9 @@
+tls:
+  certificates:
+    - certFile: /run/secrets/traefik/local-cert.pem
+      keyFile: /run/secrets/traefik/local-key.pem
+
+  options:
+    default:
+      minVersion: VersionTLS12
+      sniStrict: true

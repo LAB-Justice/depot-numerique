@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthentificationModule } from './auth/auth.module';
 import { environmentSchema } from './config/environment.schema';
 import { createLoggerConfig } from './config/logger.config';
 import { HealthModule } from './core/health/health.module';
@@ -31,6 +32,7 @@ import { HealthModule } from './core/health/health.module';
         },
       ],
     }),
+    AuthentificationModule,
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
