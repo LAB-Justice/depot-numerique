@@ -1,0 +1,59 @@
+import Joi from 'joi';
+
+const LOG_LEVELS = ['silent', 'trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
+
+export type LogLevel = (typeof LOG_LEVELS)[number];
+
+export const environmentSchema = Joi.object({
+  NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
+  API_PORT: Joi.number().port().default(3000),
+  LOG_LEVEL: Joi.string()
+    .valid(...LOG_LEVELS)
+    .default('info'),
+  DATABASE_URL: Joi.string()
+    .uri({
+      scheme: ['postgresql', 'postgres'],
+    })
+    .required(),
+  REDIS_HOST: Joi.string().hostname().required(),
+  REDIS_PORT: Joi.number().port().default(6379),
+  REDIS_PASSWORD: Joi.string().min(1).required(),
+  MINIO_ENDPOINT: Joi.string().hostname().required(),
+  MINIO_PORT: Joi.number().port().default(9000),
+  MINIO_USE_SSL: Joi.boolean().default(false),
+  MINIO_ACCESS_KEY: Joi.string().min(1).required(),
+  MINIO_SECRET_KEY: Joi.string().min(1).required(),
+  MINIO_RAW_BUCKET: Joi.string()
+    .pattern(/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/)
+    .default('documents-raw'),
+  CORS_ALLOWED_ORIGINS: Joi.string().default('http://localhost:4200'),
+  THROTTLE_TTL_MS: Joi.number().integer().min(1000).default(60000),
+  THROTTLE_LIMIT: Joi.number().integer().min(1).default(100),
+  BETTER_AUTH_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .required(),
+  BETTER_AUTH_SECRET: Joi.string().min(32).required(),
+  BETTER_AUTH_WEB_ORIGIN: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .required(),
+  SSO_PROVIDER_ID: Joi.string()
+    .pattern(/^[a-z0-9][a-z0-9-]{0,99}$/)
+    .default('justice-saml'),
+  SSO_DOMAIN: Joi.string().domain({ allowUnicode: false }).default('justice.fr'),
+  SSO_SP_ENTITY_ID: Joi.string().min(1).max(1024).default('depot-numerique'),
+  SSO_IDP_METADATA_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .required(),
+  SSO_SP_ENCRYPTION_CERTIFICATE_PATH: Joi.string()
+    .min(1)
+    .default('../../.secrets/saml/sp-encryption-certificate.pem'),
+  SSO_SP_ENCRYPTION_PRIVATE_KEY_PATH: Joi.string()
+    .min(1)
+    .default('../../.secrets/saml/sp-encryption-private-key.pem'),
+  SSO_SP_SIGNING_CERTIFICATE_PATH: Joi.string()
+    .min(1)
+    .default('../../.secrets/saml/sp-signing-certificate.pem'),
+  SSO_SP_SIGNING_PRIVATE_KEY_PATH: Joi.string()
+    .min(1)
+    .default('../../.secrets/saml/sp-signing-private-key.pem'),
+});

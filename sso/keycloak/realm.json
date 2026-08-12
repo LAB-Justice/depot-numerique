@@ -14,7 +14,7 @@
         "subComponents": {},
         "config": {
           "kc.user.profile.config": [
-            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"igcid\",\"displayName\":\"igcid\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"min\":8,\"max\":8}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"logonId\",\"displayName\":\"logonId\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"roles\",\"displayName\":\"roles\",\"group\":\"ldap-sso\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":true},{\"name\":\"bureauIGC\",\"displayName\":\"bureauIGC\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":512}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"affectationOp2\",\"displayName\":\"affectationOp2\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":512}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"affectationOp3\",\"displayName\":\"affectationOp3\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":512}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"affectationOp4\",\"displayName\":\"affectationOp4\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":512}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"ldap-sso\",\"displayHeader\":\"Attributs LDAP/SSO\",\"displayDescription\":\"Attributs transmis par le SSO intranet SAML\"}]}"
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"igcid\",\"displayName\":\"igcid\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"min\":8,\"max\":8}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"logonId\",\"displayName\":\"logonId\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"roles\",\"displayName\":\"roles\",\"group\":\"ldap-sso\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":true},{\"name\":\"bureauIGC\",\"displayName\":\"bureauIGC\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":512}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"siteDescription\",\"displayName\":\"siteDescription\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"affectationOp2\",\"displayName\":\"affectationOp2\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":512}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"affectationOp3\",\"displayName\":\"affectationOp3\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":512}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"affectationOp4\",\"displayName\":\"affectationOp4\",\"group\":\"ldap-sso\",\"validations\":{\"length\":{\"max\":512}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"ldap-sso\",\"displayHeader\":\"Attributs LDAP/SSO\",\"displayDescription\":\"Attributs transmis par le SSO intranet SAML\"}]}"
           ]
         }
       }
@@ -31,7 +31,7 @@
               "config": {
                 "always.read.value.from.ldap": ["true"],
                 "is.mandatory.in.ldap": ["true"],
-                "ldap.attribute": ["uid"],
+                "ldap.attribute": ["logonId"],
                 "read.only": ["true"],
                 "user.model.attribute": ["username"]
               }
@@ -118,6 +118,18 @@
               }
             },
             {
+              "name": "siteDescription",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "always.read.value.from.ldap": ["true"],
+                "is.binary.attribute": ["false"],
+                "is.mandatory.in.ldap": ["true"],
+                "ldap.attribute": ["siteDescription"],
+                "read.only": ["true"],
+                "user.model.attribute": ["siteDescription"]
+              }
+            },
+            {
               "name": "affectationOp2",
               "providerId": "user-attribute-ldap-mapper",
               "config": {
@@ -180,7 +192,7 @@
           "usePasswordModifyExtendedOp": ["false"],
           "useTruststoreSpi": ["ldapsOnly"],
           "userObjectClasses": ["inetOrgPerson, depotNumeriquePerson"],
-          "usernameLDAPAttribute": ["uid"],
+          "usernameLDAPAttribute": ["logonId"],
           "usersDn": ["ou=people,dc=justice,dc=fr"],
           "uuidLDAPAttribute": ["entryUUID"],
           "validatePasswordPolicy": ["false"],
@@ -198,21 +210,27 @@
       "protocol": "saml",
       "publicClient": false,
       "frontchannelLogout": true,
-      "redirectUris": ["http://localhost:4200/saml/acs"],
+      "redirectUris": ["https://depot-numerique.localhost/api/auth/sso/saml2/sp/acs/justice-saml"],
       "attributes": {
         "saml.authnstatement": "true",
-        "saml.client.signature": "false",
-        "saml.encrypt": "false",
+        "saml.assertion.signature": "true",
+        "saml.client.signature": "true",
+        "saml.descriptor.cache.seconds": "60",
+        "saml.encrypt": "true",
+        "saml.encryption.digestMethod": "http://www.w3.org/2000/09/xmldsig#sha1",
+        "saml.encryption.keyAlgorithm": "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p",
         "saml.force.post.binding": "true",
-        "saml.multivalued.roles": "false",
+        "saml.multivalued.roles": "true",
         "saml_name_id_format": "username",
-        "saml.onetimeuse.condition": "false",
+        "saml.metadataDescriptorUrl": "http://api:3000/api/auth/sso/saml2/sp/metadata?providerId=justice-saml&format=xml",
+        "saml.onetimeuse.condition": "true",
         "saml.server.signature": "true",
         "saml.server.signature.keyinfo.ext": "false",
         "saml.signature.algorithm": "RSA_SHA256",
-        "saml_assertion_consumer_url_post": "http://localhost:4200/saml/acs",
+        "saml.useMetadataDescriptorUrl": "true",
+        "saml_assertion_consumer_url_post": "https://depot-numerique.localhost/api/auth/sso/saml2/sp/acs/justice-saml",
         "saml_force_name_id_format": "false",
-        "saml_single_logout_service_url_post": "http://localhost:4200/saml/logout"
+        "saml_single_logout_service_url_post": "https://depot-numerique.localhost/api/auth/sso/saml2/sp/slo/justice-saml"
       },
       "protocolMappers": [
         {
@@ -301,6 +319,19 @@
             "friendly.name": "bureauIGC",
             "single": "true",
             "user.attribute": "bureauIGC"
+          }
+        },
+        {
+          "name": "siteDescription",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "attribute.name": "siteDescription",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "siteDescription",
+            "single": "true",
+            "user.attribute": "siteDescription"
           }
         },
         {

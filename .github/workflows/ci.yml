@@ -33,7 +33,7 @@ jobs:
           - name: Quality
             command: pnpm check && pnpm knip && pnpm typecheck && pnpm database:validate
           - name: Tests
-            command: pnpm test
+            command: pnpm test && pnpm api:test:e2e
           - name: Build
             command: pnpm build
 

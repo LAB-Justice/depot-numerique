@@ -1,5 +1,5 @@
 import { type Prisma, StructureLevel, UserRole } from '../generated/prisma/client.js';
-import { prisma } from '../src/client.js';
+import { createDatabaseClient } from '../src/client.js';
 
 interface StructureSeed {
   ssoCode: string;
@@ -9,7 +9,7 @@ interface StructureSeed {
 }
 
 interface UserSeed {
-  igcidHash: string;
+  igcId: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -70,14 +70,14 @@ const serviceData: Prisma.ServiceCreateWithoutStructureInput[] = [
 
 const userData: UserSeed[] = [
   {
-    igcidHash: 'a'.repeat(64),
+    igcId: '00000001',
     firstName: 'Alice',
     lastName: 'Administration',
-    email: 'alice.admin-general@example.invalid',
-    role: UserRole.ADMINISTRATEUR_GENERAL,
+    email: 'alice.admin-national@example.invalid',
+    role: UserRole.ADMINISTRATEUR_NATIONAL,
   },
   {
-    igcidHash: 'b'.repeat(64),
+    igcId: '00000002',
     firstName: 'Rémi',
     lastName: 'Régional',
     email: 'remi.admin-regional@example.invalid',
@@ -86,7 +86,7 @@ const userData: UserSeed[] = [
     adminStructureSsoCode: '00000001',
   },
   {
-    igcidHash: 'c'.repeat(64),
+    igcId: '00000003',
     firstName: 'Louise',
     lastName: 'Locale',
     email: 'louise.admin-local@example.invalid',
@@ -95,7 +95,7 @@ const userData: UserSeed[] = [
     adminStructureSsoCode: '00000002',
   },
   {
-    igcidHash: 'd'.repeat(64),
+    igcId: '00000019',
     firstName: 'Amandine',
     lastName: 'Agent',
     email: 'amandine.agent@example.invalid',
@@ -104,7 +104,7 @@ const userData: UserSeed[] = [
     serviceSlug: 'baj',
   },
   {
-    igcidHash: 'e'.repeat(64),
+    igcId: '00000008',
     firstName: 'Thomas',
     lastName: 'Proximité',
     email: 'thomas.admin-tprox@example.invalid',
@@ -113,7 +113,7 @@ const userData: UserSeed[] = [
     adminStructureSsoCode: '00000005',
   },
   {
-    igcidHash: 'f'.repeat(64),
+    igcId: '00000016',
     firstName: 'Claire',
     lastName: 'Cour',
     email: 'claire.admin-ca@example.invalid',
@@ -122,7 +122,7 @@ const userData: UserSeed[] = [
     adminStructureSsoCode: '00000001',
   },
   {
-    igcidHash: 'g'.repeat(64),
+    igcId: '00000020',
     firstName: 'Camille',
     lastName: 'Appel',
     email: 'camille.agent-ca@example.invalid',
@@ -133,122 +133,133 @@ const userData: UserSeed[] = [
 ];
 
 export async function main(): Promise<void> {
-  await prisma.$transaction(async (transaction) => {
-    for (const structureInput of structureData) {
-      const parent = structureInput.parentSsoCode
-        ? await transaction.structure.findUniqueOrThrow({
-            where: { ssoCode: structureInput.parentSsoCode },
-            select: { id: true },
-          })
-        : null;
+  const databaseUrl = process.env.DATABASE_URL;
 
-      const structure = await transaction.structure.upsert({
-        where: { ssoCode: structureInput.ssoCode },
-        update: {
-          displayName: structureInput.displayName,
-          level: structureInput.level,
-          parentId: parent?.id ?? null,
-          isActive: true,
-        },
-        create: {
-          ssoCode: structureInput.ssoCode,
-          displayName: structureInput.displayName,
-          level: structureInput.level,
-          parentId: parent?.id ?? null,
-          isActive: true,
-        },
-      });
+  if (!databaseUrl?.trim()) {
+    throw new Error('DATABASE_URL is required to initialize Prisma');
+  }
 
-      if (!serviceStructureCodes.has(structure.ssoCode)) {
-        continue;
-      }
+  const prisma = createDatabaseClient(databaseUrl);
 
-      for (const serviceInput of serviceData) {
-        await transaction.service.upsert({
-          where: {
-            structureId_slug: {
-              structureId: structure.id,
-              slug: serviceInput.slug,
-            },
-          },
-          update: {
-            slug: serviceInput.slug,
-            displayName: serviceInput.displayName,
-            isActive: true,
-          },
-          create: {
-            ...serviceInput,
-            structureId: structure.id,
-          },
-        });
-      }
-    }
-
-    for (const userInput of userData) {
-      const workStructure = userInput.workStructureSsoCode
-        ? await transaction.structure.findUniqueOrThrow({
-            where: { ssoCode: userInput.workStructureSsoCode },
-            select: { id: true },
-          })
-        : null;
-
-      const adminStructure = userInput.adminStructureSsoCode
-        ? await transaction.structure.findUniqueOrThrow({
-            where: { ssoCode: userInput.adminStructureSsoCode },
-            select: { id: true },
-          })
-        : null;
-
-      const service =
-        workStructure && userInput.serviceSlug
-          ? await transaction.service.findUniqueOrThrow({
-              where: {
-                structureId_slug: {
-                  structureId: workStructure.id,
-                  slug: userInput.serviceSlug,
-                },
-              },
+  try {
+    await prisma.$transaction(async (transaction) => {
+      for (const structureInput of structureData) {
+        const parent = structureInput.parentSsoCode
+          ? await transaction.structure.findUniqueOrThrow({
+              where: { ssoCode: structureInput.parentSsoCode },
               select: { id: true },
             })
           : null;
 
-      await transaction.user.upsert({
-        where: { igcidHash: userInput.igcidHash },
-        update: {
-          firstName: userInput.firstName,
-          lastName: userInput.lastName,
-          email: userInput.email,
-          role: userInput.role,
-          isActive: true,
-          workStructureId: workStructure?.id ?? null,
-          adminStructureId: adminStructure?.id ?? null,
-          serviceId: service?.id ?? null,
-        },
-        create: {
-          igcidHash: userInput.igcidHash,
-          firstName: userInput.firstName,
-          lastName: userInput.lastName,
-          email: userInput.email,
-          role: userInput.role,
-          isActive: true,
-          workStructureId: workStructure?.id ?? null,
-          adminStructureId: adminStructure?.id ?? null,
-          serviceId: service?.id ?? null,
-        },
-      });
-    }
-  });
+        const structure = await transaction.structure.upsert({
+          where: { ssoCode: structureInput.ssoCode },
+          update: {
+            displayName: structureInput.displayName,
+            level: structureInput.level,
+            parentId: parent?.id ?? null,
+            isActive: true,
+          },
+          create: {
+            ssoCode: structureInput.ssoCode,
+            displayName: structureInput.displayName,
+            level: structureInput.level,
+            parentId: parent?.id ?? null,
+            isActive: true,
+          },
+        });
+
+        if (!serviceStructureCodes.has(structure.ssoCode)) {
+          continue;
+        }
+
+        for (const serviceInput of serviceData) {
+          await transaction.service.upsert({
+            where: {
+              structureId_slug: {
+                structureId: structure.id,
+                slug: serviceInput.slug,
+              },
+            },
+            update: {
+              slug: serviceInput.slug,
+              displayName: serviceInput.displayName,
+              isActive: true,
+            },
+            create: {
+              ...serviceInput,
+              structureId: structure.id,
+            },
+          });
+        }
+      }
+
+      for (const userInput of userData) {
+        const workStructure = userInput.workStructureSsoCode
+          ? await transaction.structure.findUniqueOrThrow({
+              where: { ssoCode: userInput.workStructureSsoCode },
+              select: { id: true },
+            })
+          : null;
+
+        const adminStructure = userInput.adminStructureSsoCode
+          ? await transaction.structure.findUniqueOrThrow({
+              where: { ssoCode: userInput.adminStructureSsoCode },
+              select: { id: true },
+            })
+          : null;
+
+        const service =
+          workStructure && userInput.serviceSlug
+            ? await transaction.service.findUniqueOrThrow({
+                where: {
+                  structureId_slug: {
+                    structureId: workStructure.id,
+                    slug: userInput.serviceSlug,
+                  },
+                },
+                select: { id: true },
+              })
+            : null;
+
+        await transaction.user.upsert({
+          where: { igcId: userInput.igcId },
+          update: {
+            firstName: userInput.firstName,
+            lastName: userInput.lastName,
+            email: userInput.email,
+            role: userInput.role,
+            isActive: true,
+            workStructureId: workStructure?.id ?? null,
+            adminStructureId: adminStructure?.id ?? null,
+            serviceId: service?.id ?? null,
+          },
+          create: {
+            igcId: userInput.igcId,
+            firstName: userInput.firstName,
+            lastName: userInput.lastName,
+            email: userInput.email,
+            role: userInput.role,
+            isActive: true,
+            workStructureId: workStructure?.id ?? null,
+            adminStructureId: adminStructure?.id ?? null,
+            serviceId: service?.id ?? null,
+          },
+        });
+      }
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
-try {
-  await main();
-  process.stdout.write(
-    `Seed completed: ${structureData.length} structures, ${serviceStructureCodes.size * serviceData.length} services and ${userData.length} users.\n`,
-  );
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`Database seed failed: ${message}\n`);
-  process.exitCode = 1;
-} finally {
-  await prisma.$disconnect();
-}
+void main()
+  .then(() => {
+    process.stdout.write(
+      `Seed completed: ${structureData.length} structures, ${serviceStructureCodes.size * serviceData.length} services and ${userData.length} users.\n`,
+    );
+  })
+  .catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Database seed failed: ${message}\n`);
+    process.exitCode = 1;
+  });

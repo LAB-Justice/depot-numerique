@@ -1,9 +1,9 @@
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { config } from 'dotenv';
 import { defineConfig, env } from 'prisma/config';
 
 config({
-  path: fileURLToPath(new URL('.env', import.meta.url)),
+  path: join(__dirname, '.env'),
   quiet: true,
 });
 
