@@ -24,7 +24,7 @@
     "@angular/core": "^22.0.0",
     "@angular/platform-browser": "^22.0.0",
     "@angular/router": "^22.0.0",
-    "@better-auth/sso": "1.6.23",
+    "@better-auth/sso": "1.7.2",
     "better-auth": "^1.6.23",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
